@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="description" content="ReadTrack — Structured reading sessions with verification." />
+  <title>ReadTrack — Reading Session</title>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== HOME PAGE ===== -->
+  <div id="page-home" class="page active">
+    <div class="home-container">
+      <div class="logo-wrap">
+        <div class="logo-icon">📚</div>
+        <h1 class="site-name">ReadTrack</h1>
+      </div>
+      <p class="site-desc">
+        Complete structured reading sessions with verified time, location, and camera confirmation.
+      </p>
+      <button id="btn-start" class="btn btn-primary btn-lg">
+        <span>Start Reading</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <a href="#" id="link-terms-home" class="terms-link">Terms &amp; Privacy Policy</a>
+    </div>
+  </div>
+
+  <!-- ===== TERMS PAGE ===== -->
+  <div id="page-terms" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-terms">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Terms &amp; Privacy Policy</h2>
+    </div>
+    <div class="terms-body">
+      <div class="terms-content">
+        <h3>1. Introduction</h3>
+        <p>Welcome to ReadTrack. By using this service you agree to these terms. Please read them carefully before starting a reading session.</p>
+
+        <h3>2. Data We Collect</h3>
+        <p>During a reading session we collect:</p>
+        <ul>
+          <li><strong>Location data</strong> — latitude, longitude, and GPS accuracy.</li>
+          <li><strong>Camera photo</strong> — a single verification photo taken with your front camera.</li>
+          <li><strong>Session metadata</strong> — start time, end time, duration, device type, browser, and operating system.</li>
+        </ul>
+
+        <h3>3. How We Use Your Data</h3>
+        <p>All collected data is used solely for verifying that a legitimate reading session was completed. Data is transmitted securely to our backend and forwarded to an authorized Telegram channel for record-keeping.</p>
+
+        <h3>4. Camera Permission</h3>
+        <p>We request access to your front-facing camera to take a single verification photo at session start. The camera stream is never recorded continuously; only one still image is captured.</p>
+
+        <h3>5. Location Permission</h3>
+        <p>We request your device location to verify where the reading session took place. Location data is captured once at session start and once at session end.</p>
+
+        <h3>6. Data Retention</h3>
+        <p>Session records are retained for up to 90 days and then permanently deleted unless required by applicable law.</p>
+
+        <h3>7. Third-Party Services</h3>
+        <p>We use the Telegram API to deliver session reports. No data is sold or shared with any other third party.</p>
+
+        <h3>8. User Consent</h3>
+        <p>By tapping "I Agree &amp; Continue" you give explicit informed consent for the collection and processing described above.</p>
+
+        <h3>9. Contact</h3>
+        <p>For any questions regarding your data, contact us through the Telegram channel linked to your reading programme.</p>
+      </div>
+
+      <div class="terms-actions" id="terms-actions">
+        <label class="checkbox-wrap">
+          <input type="checkbox" id="chk-agree" />
+          <span class="checkmark"></span>
+          <span class="checkbox-label">I have read and agree to the Terms &amp; Privacy Policy</span>
+        </label>
+        <button id="btn-agree" class="btn btn-primary btn-lg" disabled>
+          I Agree &amp; Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PERMISSIONS PAGE ===== -->
+  <div id="page-permissions" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-perms">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Grant Permissions</h2>
+    </div>
+    <div class="perms-container">
+      <p class="perms-intro">ReadTrack needs the following permissions to start your session:</p>
+
+      <div class="perm-card" id="perm-card-camera">
+        <div class="perm-icon">📷</div>
+        <div class="perm-info">
+          <h3>Camera</h3>
+          <p>Front camera for verification photo</p>
+        </div>
+        <div class="perm-status" id="perm-status-camera">
+          <span class="badge badge-pending">Pending</span>
+        </div>
+      </div>
+
+      <div class="perm-card" id="perm-card-location">
+        <div class="perm-icon">📍</div>
+        <div class="perm-info">
+          <h3>Location</h3>
+          <p>GPS for session location verification</p>
+        </div>
+        <div class="perm-status" id="perm-status-location">
+          <span class="badge badge-pending">Pending</span>
+        </div>
+      </div>
+
+      <div id="perms-error" class="alert alert-error hidden">
+        Both camera and location permissions are required to start a reading session.
+      </div>
+
+      <button id="btn-grant-perms" class="btn btn-primary btn-lg">
+        Grant Permissions
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== SESSION PAGE ===== -->
+  <div id="page-session" class="page">
+    <div class="session-header">
+      <span class="session-title">ReadTrack</span>
+      <span id="session-id-label" class="session-id-label"></span>
+    </div>
+
+    <div class="session-body">
+      <!-- Timer -->
+      <div class="timer-card">
+        <div class="timer-label">Reading Time</div>
+        <div id="timer-display" class="timer-display">00:00:00</div>
+        <div id="session-status-text" class="session-status-text">Session Active</div>
+      </div>
+
+      <!-- Status Cards -->
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="status-card-icon">📷</div>
+          <div class="status-card-body">
+            <div class="status-card-label">Camera</div>
+            <div id="status-camera" class="status-card-value status-ok">Verified</div>
+          </div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-icon">📍</div>
+          <div class="status-card-body">
+            <div class="status-card-label">Location</div>
+            <div id="status-location" class="status-card-value status-ok">Captured</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timer Controls -->
+      <div class="timer-controls">
+        <button id="btn-pause-resume" class="btn btn-secondary">
+          <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hidden"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="pause-resume-label">Pause</span>
+        </button>
+        <button id="btn-open-pdf" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Open PDF
+        </button>
+      </div>
+
+      <button id="btn-end-session" class="btn btn-danger btn-lg">
+        End Session
+      </button>
+    </div>
+
+    <!-- Hidden camera elements -->
+    <video id="camera-video" autoplay playsinline muted style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"></video>
+    <canvas id="camera-canvas" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"></canvas>
+  </div>
+
+  <!-- ===== PDF READER PAGE ===== -->
+  <div id="page-pdf" class="page">
+    <div class="page-header pdf-header">
+      <button class="btn-back" id="btn-back-pdf">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2 id="pdf-filename">PDF Reader</h2>
+      <div class="pdf-controls">
+        <button id="btn-zoom-out" class="btn-icon" title="Zoom Out">−</button>
+        <span id="zoom-level">100%</span>
+        <button id="btn-zoom-in" class="btn-icon" title="Zoom In">+</button>
+      </div>
+    </div>
+
+    <div class="pdf-toolbar">
+      <button id="btn-prev-page" class="btn btn-secondary btn-sm">◀ Prev</button>
+      <span id="pdf-page-info">Page <span id="pdf-current-page">—</span> / <span id="pdf-total-pages">—</span></span>
+      <button id="btn-next-page" class="btn btn-secondary btn-sm">Next ▶</button>
+    </div>
+
+    <div id="pdf-drop-zone" class="pdf-drop-zone">
+      <div class="drop-zone-inner">
+        <div class="drop-icon">📄</div>
+        <p>Tap to select a PDF file</p>
+        <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none" />
+        <button id="btn-select-pdf" class="btn btn-primary">Select PDF</button>
+      </div>
+    </div>
+
+    <div id="pdf-viewer-wrap" class="pdf-viewer-wrap hidden">
+      <canvas id="pdf-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ===== COMPLETE PAGE ===== -->
+  <div id="page-complete" class="page">
+    <div class="complete-container">
+      <div class="complete-icon">✅</div>
+      <h2>Session Complete!</h2>
+      <p class="complete-sub">Your reading session has been recorded and sent for verification.</p>
+
+      <div class="complete-stats" id="complete-stats">
+        <div class="stat-row">
+          <span class="stat-label">Session ID</span>
+          <span class="stat-value" id="c-session-id">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Duration</span>
+          <span class="stat-value" id="c-duration">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Start Time</span>
+          <span class="stat-value" id="c-start">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">End Time</span>
+          <span class="stat-value" id="c-end">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Location</span>
+          <span class="stat-value" id="c-location">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Camera</span>
+          <span class="stat-value" id="c-camera">—</span>
+        </div>
+      </div>
+
+      <div id="complete-sending" class="alert alert-info">
+        <div class="spinner"></div>
+        Sending session report…
+      </div>
+      <div id="complete-sent" class="alert alert-success hidden">
+        ✅ Session report sent successfully!
+      </div>
+      <div id="complete-error" class="alert alert-error hidden">
+        ⚠️ Could not send report. Data saved locally.
+      </div>
+
+      <button id="btn-new-session" class="btn btn-primary btn-lg">
+        Start New Session
+      </button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
