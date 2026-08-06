@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#6366f1" />
   <title>ReadTrack — Teacher Dashboard</title>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="teacher.css" />
 </head>
@@ -17,7 +19,6 @@
         <div class="t-login-logo">📚</div>
         <h1 class="t-login-title">Teacher Dashboard</h1>
         <p class="t-login-sub">Enter your class code and PIN to continue</p>
-
         <div class="t-form">
           <div class="t-field">
             <label for="input-class-code">Class Code</label>
@@ -29,14 +30,9 @@
             <input type="password" id="input-pin" placeholder="Enter your PIN"
               autocomplete="current-password" />
           </div>
-          <div id="login-error" class="t-alert t-alert-error hidden">
-            Invalid class code or PIN. Please try again.
-          </div>
-          <button id="btn-login" class="btn btn-primary btn-lg">
-            Sign In
-          </button>
+          <div id="login-error" class="t-alert t-alert-error hidden"></div>
+          <button id="btn-login" class="btn btn-primary btn-lg">Sign In</button>
         </div>
-
         <a href="/" class="t-back-link">← Back to ReadTrack</a>
       </div>
     </div>
@@ -45,7 +41,6 @@
   <!-- ── DASHBOARD PAGE ── -->
   <div id="t-page-dashboard" class="t-page">
 
-    <!-- Sidebar -->
     <aside class="t-sidebar" id="t-sidebar">
       <div class="t-sidebar-header">
         <div class="t-sidebar-logo">📚</div>
@@ -55,7 +50,6 @@
         </div>
         <button id="btn-sidebar-close" class="t-sidebar-close">✕</button>
       </div>
-
       <nav class="t-nav">
         <button class="t-nav-item active" data-view="overview">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -69,14 +63,21 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Sessions
         </button>
+        <button class="t-nav-item" data-view="charts">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Charts
+        </button>
         <button class="t-nav-item" data-view="assignments">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Assignments
         </button>
+        <button class="t-nav-item" data-view="report">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Reports
+        </button>
       </nav>
-
       <div class="t-sidebar-footer">
-        <div class="t-class-info" id="t-class-info">
+        <div class="t-class-info">
           <div class="t-class-name" id="t-class-name-label">—</div>
           <div class="t-class-code" id="t-class-code-label">—</div>
         </div>
@@ -84,10 +85,7 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="t-main">
-
-      <!-- Top Bar -->
       <div class="t-topbar">
         <button id="btn-menu-toggle" class="t-menu-btn">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -96,16 +94,15 @@
         <div class="t-topbar-actions">
           <button id="btn-export-csv" class="btn btn-secondary btn-sm">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export CSV
+            <span>CSV</span>
           </button>
           <button id="btn-refresh" class="btn btn-secondary btn-sm">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Refresh
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      <!-- Views -->
       <div class="t-content">
 
         <!-- OVERVIEW -->
@@ -113,38 +110,41 @@
           <div class="t-stats-grid">
             <div class="t-stat-card">
               <div class="t-stat-icon">👥</div>
-              <div class="t-stat-body">
-                <div class="t-stat-num" id="stat-students">0</div>
-                <div class="t-stat-label">Students</div>
-              </div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-students">0</div><div class="t-stat-label">Students</div></div>
             </div>
             <div class="t-stat-card">
               <div class="t-stat-icon">📖</div>
-              <div class="t-stat-body">
-                <div class="t-stat-num" id="stat-sessions">0</div>
-                <div class="t-stat-label">Total Sessions</div>
-              </div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-sessions">0</div><div class="t-stat-label">Total Sessions</div></div>
             </div>
             <div class="t-stat-card">
               <div class="t-stat-icon">⏱️</div>
-              <div class="t-stat-body">
-                <div class="t-stat-num" id="stat-hours">0h</div>
-                <div class="t-stat-label">Total Reading Time</div>
-              </div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-hours">0h</div><div class="t-stat-label">Reading Time</div></div>
             </div>
             <div class="t-stat-card">
               <div class="t-stat-icon">✅</div>
-              <div class="t-stat-body">
-                <div class="t-stat-num" id="stat-verified">0%</div>
-                <div class="t-stat-label">Verified Sessions</div>
-              </div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-verified">0%</div><div class="t-stat-label">Verified</div></div>
+            </div>
+            <div class="t-stat-card">
+              <div class="t-stat-icon">🏆</div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-top-reader">—</div><div class="t-stat-label">Top Reader</div></div>
+            </div>
+            <div class="t-stat-card">
+              <div class="t-stat-icon">📅</div>
+              <div class="t-stat-body"><div class="t-stat-num" id="stat-today">0</div><div class="t-stat-label">Today's Sessions</div></div>
             </div>
           </div>
 
+          <!-- Top Readers -->
           <div class="t-section">
-            <h2 class="t-section-title">Recent Sessions</h2>
+            <h2 class="t-section-title">🏅 Top Readers This Week</h2>
+            <div id="top-readers-list" class="top-readers-list"></div>
+          </div>
+
+          <!-- Recent Sessions -->
+          <div class="t-section">
+            <h2 class="t-section-title">🕐 Recent Sessions</h2>
             <div id="recent-sessions-list" class="t-table-wrap">
-              <div class="t-loading">Loading sessions…</div>
+              <div class="t-loading">Loading…</div>
             </div>
           </div>
         </div>
@@ -154,20 +154,38 @@
           <div class="t-toolbar">
             <input type="text" id="search-students" class="t-search" placeholder="Search students…" />
           </div>
-          <div id="students-list" class="t-table-wrap">
-            <div class="t-loading">Loading students…</div>
-          </div>
+          <div id="students-list" class="t-table-wrap"><div class="t-loading">Loading…</div></div>
         </div>
 
         <!-- SESSIONS -->
         <div class="t-view" id="view-sessions">
           <div class="t-toolbar">
-            <input type="text" id="search-sessions" class="t-search" placeholder="Search by student name…" />
+            <input type="text" id="search-sessions" class="t-search" placeholder="Search by student…" />
             <input type="date" id="filter-date" class="t-date-input" />
             <button id="btn-clear-filters" class="btn btn-secondary btn-sm">Clear</button>
           </div>
-          <div id="sessions-list" class="t-table-wrap">
-            <div class="t-loading">Loading sessions…</div>
+          <div id="sessions-list" class="t-table-wrap"><div class="t-loading">Loading…</div></div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="t-view" id="view-charts">
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h3 class="chart-title">Sessions Per Day (Last 14 Days)</h3>
+              <div class="chart-wrap"><canvas id="chart-sessions-per-day"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title">Reading Time Per Student (Top 10)</h3>
+              <div class="chart-wrap"><canvas id="chart-time-per-student"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title">Sessions Per Student</h3>
+              <div class="chart-wrap"><canvas id="chart-sessions-per-student"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title">Verification Status</h3>
+              <div class="chart-wrap chart-wrap-sm"><canvas id="chart-verification"></canvas></div>
+            </div>
           </div>
         </div>
 
@@ -176,28 +194,49 @@
           <div class="t-assignment-form">
             <h2 class="t-section-title">Create Assignment</h2>
             <div class="t-form-grid">
-              <div class="t-field">
-                <label>Assignment Title</label>
-                <input type="text" id="assign-title" placeholder="e.g. Chapter 1 Reading" />
-              </div>
-              <div class="t-field">
-                <label>Required Duration (minutes)</label>
-                <input type="number" id="assign-duration" placeholder="e.g. 30" min="1" max="480" />
-              </div>
-              <div class="t-field">
-                <label>Due Date</label>
-                <input type="date" id="assign-due" />
-              </div>
-              <div class="t-field">
-                <label>Description (optional)</label>
-                <input type="text" id="assign-desc" placeholder="e.g. Read pages 1–50" />
-              </div>
+              <div class="t-field"><label>Title</label><input type="text" id="assign-title" placeholder="e.g. Chapter 1 Reading" /></div>
+              <div class="t-field"><label>Duration (minutes)</label><input type="number" id="assign-duration" placeholder="e.g. 30" min="1" max="480" /></div>
+              <div class="t-field"><label>Due Date</label><input type="date" id="assign-due" /></div>
+              <div class="t-field"><label>Description</label><input type="text" id="assign-desc" placeholder="e.g. Read pages 1–50" /></div>
             </div>
             <button id="btn-create-assignment" class="btn btn-primary">Create Assignment</button>
           </div>
           <div class="t-section" style="margin-top:24px">
             <h2 class="t-section-title">Active Assignments</h2>
             <div id="assignments-list" class="t-assignments-list"></div>
+          </div>
+        </div>
+
+        <!-- REPORTS -->
+        <div class="t-view" id="view-report">
+          <div class="report-options">
+            <h2 class="t-section-title">Generate Class Report</h2>
+            <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px">
+              Generate a downloadable PDF report of all class reading activity.
+            </p>
+            <div class="t-form-grid" style="margin-bottom:20px">
+              <div class="t-field">
+                <label>Date From</label>
+                <input type="date" id="report-date-from" class="t-date-input" style="width:100%" />
+              </div>
+              <div class="t-field">
+                <label>Date To</label>
+                <input type="date" id="report-date-to" class="t-date-input" style="width:100%" />
+              </div>
+            </div>
+            <div class="report-buttons">
+              <button id="btn-generate-pdf" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Download PDF Report
+              </button>
+              <button id="btn-export-csv-report" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+                Export as CSV
+              </button>
+            </div>
+            <div id="report-preview" class="report-preview hidden">
+              <canvas id="report-canvas"></canvas>
+            </div>
           </div>
         </div>
 
