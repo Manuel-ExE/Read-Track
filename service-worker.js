@@ -4,7 +4,7 @@
    ============================================================ */
 
 // Change this version string on every deployment to bust the cache
-const CACHE_VERSION = 'readtrack-v' + '2026-08-06-003';
+const CACHE_VERSION = 'readtrack-v' + '2026-08-06-004';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -77,6 +77,8 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
+      // Only cache GET requests
+      if (event.request.method !== 'GET') return fetch(event.request);
       return fetch(event.request).then(response => {
         if (!response || response.status !== 200) return response;
         const clone = response.clone();
