@@ -815,14 +815,51 @@ document.getElementById('btn-download-qr')?.addEventListener('click',()=>{
 let postImageFile=null,chatImageFile=null,allProfiles=[],currentChatUserId=null,currentChatName='';
 
 function loadCommunityFeed(){
-  loadFeed();loadSidebarStats();
+  loadFeed();loadSidebarStats();loadMembersMini();
   const compAvatar=document.getElementById('composer-avatar');
-  if(compAvatar&&USER_PROFILE){
-    if(USER_PROFILE.avatar_url)compAvatar.innerHTML=`<img src="${USER_PROFILE.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>`;
-    else compAvatar.textContent=(USER_PROFILE.full_name||'U').charAt(0).toUpperCase();
-    if(USER_PROFILE.theme_color)compAvatar.style.background=USER_PROFILE.theme_color;
+  const compAvatar2=document.getElementById('composer-avatar-2');
+  const fbMiniAvatar=document.getElementById('fb-mini-avatar');
+  const fbMiniName=document.getElementById('fb-mini-name');
+  const fbStoryAvatar=document.getElementById('fb-story-avatar');
+  const fbModalName=document.getElementById('fb-modal-name');
+  if(USER_PROFILE){
+    const name=USER_PROFILE.full_name||'You';
+    const avatar=USER_PROFILE.avatar_url||null;
+    const color=USER_PROFILE.theme_color||'#6366f1';
+    [compAvatar,compAvatar2,fbMiniAvatar,fbStoryAvatar].forEach(el=>{
+      if(!el)return;
+      if(avatar)el.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>`;
+      else{el.textContent=name.charAt(0).toUpperCase();el.style.background=color;}
+    });
+    if(fbMiniName)fbMiniName.textContent=name;
+    if(fbModalName)fbModalName.textContent=name;
   }
 }
+
+// Post modal
+document.getElementById('btn-open-composer')?.addEventListener('click',()=>{
+  document.getElementById('post-modal')?.classList.remove('hidden');
+  document.getElementById('post-content')?.focus();
+});
+document.getElementById('btn-close-post-modal')?.addEventListener('click',()=>{
+  document.getElementById('post-modal')?.classList.add('hidden');
+});
+document.getElementById('btn-share-milestone')?.addEventListener('click',()=>{
+  document.getElementById('post-modal')?.classList.remove('hidden');
+  const h=loadData('rt-history',[]);
+  const s=loadData('rt-streaks',{});
+  const lastSession=h[0];
+  let text=`🎉 Just completed a reading session!\n`;
+  if(lastSession)text+=`⏱️ Duration: ${formatDuration(lastSession.duration)}\n`;
+  text+=`🔥 Current streak: ${s.current||0} days\n📚 Total sessions: ${s.totalSessions||0}`;
+  const ta=document.getElementById('post-content');if(ta)ta.value=text;
+});
+document.getElementById('btn-share-feeling')?.addEventListener('click',()=>{
+  document.getElementById('post-modal')?.classList.remove('hidden');
+  const ta=document.getElementById('post-content');
+  if(ta)ta.value='📚 Currently reading and feeling ';
+  ta?.focus();
+});
 
 // Community tab switching
 document.querySelectorAll('.comm-tab-btn').forEach(btn=>{
@@ -841,72 +878,152 @@ async function loadFeed(){
   const list=document.getElementById('feed-list');if(!list)return;
   list.innerHTML='<div class="feed-loading">Loading…</div>';
   const posts=await sbGet('posts','?order=created_at.desc&limit=50');
-  if(!Array.isArray(posts)||!posts.length){list.innerHTML='<div class="feed-empty">No posts yet. Be the first to post!</div>';return;}
+  if(!Array.isArray(posts)||!posts.length){list.innerHTML='<div class="feed-empty" style="padding:32px;text-align:center;color:var(--text-muted)">No posts yet. Be the first to post!</div>';return;}
   list.innerHTML=posts.map(p=>renderPost(p)).join('');
   bindPostActions();
 }
 
 function renderPost(p){
   const isOwn=p.user_id===USER_ID;
-  return `<div class="post-card" data-post-id="${p.id}">
-    <div class="post-header">
-      ${avatarEl(p.author_name,p.author_avatar,null,38)}
-      <div><div class="post-author">${escHtml(p.author_name||'User')}</div><div class="post-time">${timeAgo(p.created_at)}</div></div>
-      ${isOwn?`<button class="post-action-btn" style="margin-left:auto" data-delete-post="${p.id}">🗑️</button>`:''}
-    </div>
-    ${p.content?`<div class="post-content">${escHtml(p.content)}</div>`:''}
-    ${p.image_url?`<div class="post-image"><img src="${p.image_url}" loading="lazy" /></div>`:''}
-    <div class="post-actions">
-      <button class="post-action-btn like-btn" data-post-id="${p.id}" data-likes="${p.likes||0}">❤️ <span class="like-count">${p.likes||0}</span></button>
-      <button class="post-action-btn reply-toggle" data-post-id="${p.id}">💬 Reply</button>
-    </div>
-    <div class="post-replies" id="replies-${p.id}" style="display:none">
-      <div class="reply-composer">
-        <input type="text" class="reply-input" data-post-id="${p.id}" placeholder="Write a reply…" maxlength="300" />
-        <button class="btn btn-primary btn-sm send-reply" data-post-id="${p.id}">Send</button>
+  const color=p.author_color||'#6366f1';
+  const avatarHTML=p.author_avatar
+    ?`<img src="${p.author_avatar}" style="width:100%;height:100%;object-fit:cover"/>`
+    :(p.author_name||'U').charAt(0).toUpperCase();
+  return `<div class="fb-post-card" data-post-id="${p.id}">
+    <div class="fb-post-header">
+      <div class="fb-post-avatar" style="background:${color}">${avatarHTML}</div>
+      <div class="fb-post-meta">
+        <div class="fb-post-author">${escHtml(p.author_name||'User')}</div>
+        <div class="fb-post-time">🌍 ${timeAgo(p.created_at)}</div>
       </div>
+      ${isOwn?`<button class="fb-post-options" data-delete-post="${p.id}">···</button>`:''}
+    </div>
+    ${p.content?`<div class="fb-post-content">${escHtml(p.content)}</div>`:''}
+    ${p.image_url?`<div class="fb-post-image"><img src="${p.image_url}" loading="lazy" /></div>`:''}
+    <div class="fb-post-stats">
+      <div class="fb-reactions-count">
+        <div class="fb-reaction-icons"><div class="fb-reaction-icon">❤️</div><div class="fb-reaction-icon">👍</div></div>
+        <span class="like-count-label">${p.likes||0}</span>
+      </div>
+      <span class="comments-count-label" style="cursor:pointer" data-toggle-comments="${p.id}">0 comments</span>
+    </div>
+    <div class="fb-post-actions">
+      <button class="fb-action-btn like-btn" data-post-id="${p.id}" data-likes="${p.likes||0}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+        Like
+      </button>
+      <button class="fb-action-btn" data-toggle-comments="${p.id}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Comment
+      </button>
+      <button class="fb-action-btn" onclick="navigator.share&&navigator.share({title:'ReadTrack',text:'${escHtml(p.content||'').slice(0,50)}',url:window.location.href})">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+    </div>
+    <div class="fb-comments hidden" id="comments-${p.id}">
       <div class="replies-list" id="replies-list-${p.id}"></div>
+      <div class="fb-comment-input-wrap">
+        <div class="fb-comment-avatar" style="background:${USER_PROFILE?.theme_color||'#6366f1'}">${USER_PROFILE?.avatar_url?`<img src="${USER_PROFILE.avatar_url}" style="width:100%;height:100%;object-fit:cover"/>`:((USER_PROFILE?.full_name||'U').charAt(0))}</div>
+        <input type="text" class="fb-comment-input reply-input" data-post-id="${p.id}" placeholder="Write a comment…" maxlength="300" />
+        <button class="fb-comment-send send-reply" data-post-id="${p.id}">➤</button>
+      </div>
     </div>
   </div>`;
 }
 
 function bindPostActions(){
+  // Like
   document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.addEventListener('click',async()=>{
       const postId=btn.dataset.postId;btn.classList.toggle('liked');
-      const liked=btn.classList.contains('liked');const countEl=btn.querySelector('.like-count');
+      const liked=btn.classList.contains('liked');
       let count=parseInt(btn.dataset.likes||0);
       if(liked){count++;await sbPost('post_likes',{post_id:postId,user_id:USER_ID}).catch(()=>{});await sbUpdate('posts','?id=eq.'+postId,{likes:count});}
       else{count=Math.max(0,count-1);await sbDelete('post_likes',`?post_id=eq.${postId}&user_id=eq.${USER_ID}`);await sbUpdate('posts','?id=eq.'+postId,{likes:count});}
-      btn.dataset.likes=count;if(countEl)countEl.textContent=count;
+      btn.dataset.likes=count;
+      // Update like count display
+      const card=btn.closest('.fb-post-card');
+      if(card){const lc=card.querySelector('.like-count-label');if(lc)lc.textContent=count;}
+      btn.querySelector('svg')&&(btn.style.color=liked?'#ef4444':'');
     });
   });
-  document.querySelectorAll('.reply-toggle').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
-      const sec=document.getElementById('replies-'+btn.dataset.postId);if(!sec)return;
-      const isOpen=sec.style.display!=='none';
-      sec.style.display=isOpen?'none':'flex';sec.style.flexDirection='column';
-      if(!isOpen)await loadReplies(btn.dataset.postId);
+
+  // Toggle comments
+  document.querySelectorAll('[data-toggle-comments]').forEach(el=>{
+    el.addEventListener('click',async()=>{
+      const postId=el.dataset.toggleComments;
+      const section=document.getElementById('comments-'+postId);
+      if(!section)return;
+      const isOpen=!section.classList.contains('hidden');
+      section.classList.toggle('hidden',isOpen);
+      if(!isOpen)await loadReplies(postId);
     });
   });
+
+  // Send reply/comment
   document.querySelectorAll('.send-reply').forEach(btn=>{
     btn.addEventListener('click',async()=>{
       const postId=btn.dataset.postId;
       const input=document.querySelector(`.reply-input[data-post-id="${postId}"]`);
       if(!input||!input.value.trim())return;
-      await sbPost('replies',{post_id:postId,user_id:USER_ID,author_name:USER_PROFILE?.full_name||'User',author_avatar:USER_PROFILE?.avatar_url||null,content:input.value.trim()});
-      input.value='';await loadReplies(postId);
+      const content=input.value.trim();
+      const name=USER_PROFILE?.full_name||'User';
+      const avatar=USER_PROFILE?.avatar_url||null;
+      const color=USER_PROFILE?.theme_color||'#6366f1';
+      // Add to UI immediately
+      const repliesList=document.getElementById('replies-list-'+postId);
+      if(repliesList){
+        const div=document.createElement('div');div.className='fb-comment';
+        div.innerHTML=`<div class="fb-comment-avatar" style="background:${color}">${avatar?`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover"/>`:(name.charAt(0))}</div><div><div class="fb-comment-bubble"><div class="fb-comment-author">${escHtml(name)}</div><div class="fb-comment-text">${escHtml(content)}</div></div><div class="fb-comment-time">just now</div></div>`;
+        repliesList.appendChild(div);
+        // Update comment count
+        const card=btn.closest('.fb-post-card');
+        if(card){const cc=card.querySelector('.comments-count-label');if(cc){const n=repliesList.children.length;cc.textContent=n+' comment'+(n!==1?'s':'');}}
+      }
+      input.value='';
+      sbPost('replies',{post_id:postId,user_id:USER_ID,author_name:name,author_avatar:avatar,content}).catch(e=>console.error('Reply error:',e));
     });
   });
+
+  // Enter key for comments
+  document.querySelectorAll('.fb-comment-input').forEach(input=>{
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&!e.shiftKey){
+        e.preventDefault();
+        const btn=document.querySelector(`.send-reply[data-post-id="${input.dataset.postId}"]`);
+        btn?.click();
+      }
+    });
+  });
+
+  // Delete post
   document.querySelectorAll('[data-delete-post]').forEach(btn=>{
-    btn.addEventListener('click',async()=>{if(!confirm('Delete?'))return;await sbDelete('posts','?id=eq.'+btn.dataset.deletePost);loadFeed();});
+    btn.addEventListener('click',async()=>{
+      if(!confirm('Delete this post?'))return;
+      await sbDelete('posts','?id=eq.'+btn.dataset.deletePost);
+      btn.closest('.fb-post-card')?.remove();
+    });
   });
 }
 async function loadReplies(postId){
   const list=document.getElementById('replies-list-'+postId);if(!list)return;
   const replies=await sbGet('replies',`?post_id=eq.${postId}&order=created_at.asc`);
   if(!Array.isArray(replies)||!replies.length){list.innerHTML='';return;}
-  list.innerHTML=replies.map(r=>`<div class="reply-item">${avatarEl(r.author_name,r.author_avatar,null,28)}<div class="reply-body"><div class="reply-author">${escHtml(r.author_name)}</div><div class="reply-text">${escHtml(r.content)}</div></div></div>`).join('');
+  list.innerHTML=replies.map(r=>`
+    <div class="fb-comment">
+      <div class="fb-comment-avatar" style="background:#6366f1">${r.author_avatar?`<img src="${r.author_avatar}" style="width:100%;height:100%;object-fit:cover"/>`:r.author_name?.charAt(0)||'U'}</div>
+      <div>
+        <div class="fb-comment-bubble">
+          <div class="fb-comment-author">${escHtml(r.author_name||'User')}</div>
+          <div class="fb-comment-text">${escHtml(r.content)}</div>
+        </div>
+        <div class="fb-comment-time">${timeAgo(r.created_at)}</div>
+      </div>
+    </div>`).join('');
+  // Update comment count
+  const card=document.querySelector(`[data-post-id="${postId}"]`)?.closest('.fb-post-card');
+  if(card){const cc=card.querySelector('.comments-count-label');if(cc)cc.textContent=replies.length+' comment'+(replies.length!==1?'s':'');}
 }
 
 document.getElementById('btn-post')?.addEventListener('click',async()=>{
@@ -915,13 +1032,14 @@ document.getElementById('btn-post')?.addEventListener('click',async()=>{
   const btn=document.getElementById('btn-post');btn.disabled=true;btn.textContent='Posting…';
   let imageUrl=null;
   if(postImageFile){const path=`posts/${USER_ID}-${Date.now()}.${postImageFile.name.split('.').pop()}`;imageUrl=await uploadFile('readtrack-media',path,postImageFile);}
-  const result = await sbPost('posts',{user_id:USER_ID,author_name:USER_PROFILE?.full_name||'User',author_avatar:USER_PROFILE?.avatar_url||null,content:content||null,image_url:imageUrl});
+  const result = await sbPost('posts',{user_id:USER_ID,author_name:USER_PROFILE?.full_name||'User',author_avatar:USER_PROFILE?.avatar_url||null,author_color:USER_PROFILE?.theme_color||'#6366f1',content:content||null,image_url:imageUrl});
   if(document.getElementById('post-content'))document.getElementById('post-content').value='';
   const cc=document.getElementById('post-char-count');if(cc)cc.textContent='0';
   postImageFile=null;
   const preview=document.getElementById('post-img-preview');
   if(preview){preview.innerHTML='';preview.classList.add('hidden');}
   btn.disabled=false;btn.textContent='Post';
+  document.getElementById('post-modal')?.classList.add('hidden');
   // Immediately add post to feed without waiting for server
   if(Array.isArray(result)&&result[0]){
     const list=document.getElementById('feed-list');
@@ -938,8 +1056,34 @@ document.getElementById('post-content')?.addEventListener('input',function(){con
 document.getElementById('post-image-input')?.addEventListener('change',e=>{
   postImageFile=e.target.files[0];
   const preview=document.getElementById('post-img-preview');
-  if(preview&&postImageFile){preview.innerHTML=`<img src="${URL.createObjectURL(postImageFile)}" />`;preview.classList.remove('hidden');}
+  if(preview&&postImageFile){preview.innerHTML=`<img src="${URL.createObjectURL(postImageFile)}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover"/>`;preview.classList.remove('hidden');}
 });
+document.getElementById('post-image-input-2')?.addEventListener('change',e=>{
+  postImageFile=e.target.files[0];
+  const preview=document.getElementById('post-img-preview');
+  if(preview&&postImageFile){preview.innerHTML=`<img src="${URL.createObjectURL(postImageFile)}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover"/>`;preview.classList.remove('hidden');}
+});
+
+async function loadMembersMini(){
+  const el=document.getElementById('fb-members-mini');if(!el)return;
+  const profiles=await sbGet('profiles',`?id=neq.${USER_ID}&select=*&limit=5`);
+  if(!Array.isArray(profiles)||!profiles.length){el.innerHTML='<div style="font-size:.8rem;color:var(--text-muted)">No other members yet</div>';return;}
+  el.innerHTML=profiles.map(p=>`
+    <div class="fb-member-mini">
+      <div class="fb-member-mini-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover"/>`:(p.full_name||'U').charAt(0).toUpperCase()}</div>
+      <div class="fb-member-mini-name">${escHtml(p.full_name||'User')}</div>
+      <button class="fb-member-mini-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">Message</button>
+    </div>`).join('');
+  el.querySelectorAll('[data-user-id]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      openChat(btn.dataset.userId,btn.dataset.userName);
+      document.querySelectorAll('.comm-tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.comm-tab-content').forEach(c=>c.classList.remove('active'));
+      document.querySelector('.comm-tab-btn[data-ctab="messages"]')?.classList.add('active');
+      document.getElementById('ctab-messages')?.classList.add('active');
+    });
+  });
+}
 
 async function loadSidebarStats(){
   const statsEl=document.getElementById('sidebar-stats');const topEl=document.getElementById('sidebar-top');
