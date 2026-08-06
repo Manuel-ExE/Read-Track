@@ -62,6 +62,86 @@ async function loadConfig(){
     SUPA_URL=cfg.supabaseUrl; SUPA_KEY=cfg.supabaseKey;
   }catch(e){console.error('Config error:',e);}
 }
+
+// ── Supabase Realtime ─────────────────────────────────────────
+let realtimeSocket=null;
+let newPostCount=0;
+
+function connectRealtime(){
+  if(!SUPA_URL||!SUPA_KEY||!AUTH_TOKEN)return;
+  // Use Supabase Realtime WebSocket
+  const wsUrl=SUPA_URL.replace('https://','wss://').replace('http://','ws://')+'/realtime/v1/websocket?apikey='+SUPA_KEY+'&vsn=1.0.0';
+  try{
+    realtimeSocket=new WebSocket(wsUrl);
+    realtimeSocket.onopen=()=>{
+      // Join posts channel
+      realtimeSocket.send(JSON.stringify({
+        topic:'realtime:public:posts',
+        event:'phx_join',
+        payload:{config:{broadcast:{self:false},presence:{key:''},postgres_changes:[{event:'INSERT',schema:'public',table:'posts'}]}},
+        ref:'1'
+      }));
+    };
+    realtimeSocket.onmessage=e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.event==='postgres_changes'&&msg.payload?.data?.type==='INSERT'){
+          const newPost=msg.payload.data.record;
+          // Don't show banner for own posts
+          if(newPost&&newPost.user_id!==USER_ID){
+            showNewPostBanner();
+          }
+        }
+      }catch{}
+    };
+    realtimeSocket.onclose=()=>{
+      // Reconnect after 5 seconds
+      setTimeout(connectRealtime,5000);
+    };
+    realtimeSocket.onerror=()=>{
+      realtimeSocket=null;
+      // Fallback: poll every 30 seconds
+      setInterval(silentRefreshFeed,30000);
+    };
+  }catch{
+    // Fallback polling
+    setInterval(silentRefreshFeed,30000);
+  }
+}
+
+function showNewPostBanner(){
+  newPostCount++;
+  const feedList=document.getElementById('feed-list');if(!feedList)return;
+  let banner=document.getElementById('new-posts-banner');
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='new-posts-banner';
+    banner.className='new-post-banner';
+    banner.innerHTML=`<span class="realtime-dot"></span><span id="new-posts-text">1 new post — Click to refresh</span>`;
+    banner.addEventListener('click',()=>{
+      newPostCount=0;banner.remove();loadFeed();
+    });
+    feedList.parentNode.insertBefore(banner,feedList);
+  }else{
+    const txt=document.getElementById('new-posts-text');
+    if(txt)txt.textContent=newPostCount+' new post'+(newPostCount!==1?'s':'')+' — Click to refresh';
+  }
+}
+
+async function silentRefreshFeed(){
+  // Only refresh if community feed is visible
+  if(currentPage!=='community')return;
+  const feedTab=document.getElementById('ctab-feed');
+  if(!feedTab?.classList.contains('active'))return;
+  const posts=await sbGet('posts','?order=created_at.desc&limit=1');
+  if(!Array.isArray(posts)||!posts[0])return;
+  const list=document.getElementById('feed-list');
+  if(!list)return;
+  const firstCard=list.querySelector('.fb-post-card');
+  if(firstCard&&firstCard.dataset.postId!==posts[0].id){
+    showNewPostBanner();
+  }
+}
 async function sbGet(table,filter=''){
   const res=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+AUTH_TOKEN}
@@ -816,6 +896,8 @@ let postImageFile=null,chatImageFile=null,allProfiles=[],currentChatUserId=null,
 
 function loadCommunityFeed(){
   loadFeed();loadSidebarStats();loadMembersMini();
+  connectRealtime();
+  checkPendingRequests();
   const compAvatar=document.getElementById('composer-avatar');
   const compAvatar2=document.getElementById('composer-avatar-2');
   const fbMiniAvatar=document.getElementById('fb-mini-avatar');
@@ -861,7 +943,7 @@ document.getElementById('btn-share-feeling')?.addEventListener('click',()=>{
   ta?.focus();
 });
 
-// Community tab switching
+// ── Tab switching ─────────────────────────────────────────────
 document.querySelectorAll('.comm-tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const tab=btn.dataset.ctab;
@@ -869,9 +951,17 @@ document.querySelectorAll('.comm-tab-btn').forEach(btn=>{
     document.querySelectorAll('.comm-tab-content').forEach(c=>c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('ctab-'+tab)?.classList.add('active');
-    if(tab==='messages')loadConversations();
-    if(tab==='members')loadMembers();
+    if(tab==='messages') loadConversations();
+    if(tab==='studypals') loadStudyPals();
   });
+});
+// Sidebar see all button
+document.querySelector('[data-ctab-switch="studypals"]')?.addEventListener('click',()=>{
+  document.querySelectorAll('.comm-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.comm-tab-content').forEach(c=>c.classList.remove('active'));
+  document.querySelector('.comm-tab-btn[data-ctab="studypals"]')?.classList.add('active');
+  document.getElementById('ctab-studypals')?.classList.add('active');
+  loadStudyPals();
 });
 
 async function loadFeed(){
@@ -1065,14 +1155,27 @@ document.getElementById('post-image-input-2')?.addEventListener('change',e=>{
 });
 
 async function loadMembersMini(){
+async function loadMembersMini(){
   const el=document.getElementById('fb-members-mini');if(!el)return;
-  const profiles=await sbGet('profiles',`?id=neq.${USER_ID}&select=*&limit=5`);
-  if(!Array.isArray(profiles)||!profiles.length){el.innerHTML='<div style="font-size:.8rem;color:var(--text-muted)">No other members yet</div>';return;}
-  el.innerHTML=profiles.map(p=>`
+  const[sent,received,profiles]=await Promise.all([
+    sbGet('friend_requests',`?sender_id=eq.${USER_ID}&status=eq.accepted&select=receiver_id`),
+    sbGet('friend_requests',`?receiver_id=eq.${USER_ID}&status=eq.accepted&select=sender_id`),
+    sbGet('profiles',`?id=neq.${USER_ID}&select=*&limit=20`),
+  ]);
+  const friendIds=[
+    ...(Array.isArray(sent)?sent.map(r=>r.receiver_id):[]),
+    ...(Array.isArray(received)?received.map(r=>r.sender_id):[]),
+  ];
+  const friends=Array.isArray(profiles)?profiles.filter(p=>friendIds.includes(p.id)):[];
+  if(!friends.length){
+    el.innerHTML='<div style="font-size:.8rem;color:var(--text-muted);padding:4px 0">Add StudyPals to see them here</div>';
+    return;
+  }
+  el.innerHTML=friends.slice(0,5).map(p=>`
     <div class="fb-member-mini">
-      <div class="fb-member-mini-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover"/>`:(p.full_name||'U').charAt(0).toUpperCase()}</div>
+      <div class="fb-member-mini-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover"/>`:((p.full_name||'U').charAt(0))}</div>
       <div class="fb-member-mini-name">${escHtml(p.full_name||'User')}</div>
-      <button class="fb-member-mini-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">Message</button>
+      <button class="fb-member-mini-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">Chat</button>
     </div>`).join('');
   el.querySelectorAll('[data-user-id]').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -1182,14 +1285,131 @@ document.getElementById('msg-search-user')?.addEventListener('input',function(){
   renderUserResults(allProfiles.filter(p=>(p.full_name||'').toLowerCase().includes(this.value.toLowerCase())));
 });
 
-async function loadMembers(filter=''){
-  const list=document.getElementById('members-list');if(!list)return;
+// ── StudyPals ─────────────────────────────────────────────────
+let myFriends=[], pendingRequests=[], receivedRequests=[];
+
+async function checkPendingRequests(){
+  if(!USER_ID)return;
+  const received=await sbGet('friend_requests',`?receiver_id=eq.${USER_ID}&status=eq.pending&select=id`).catch(()=>[]);
+  const count=Array.isArray(received)?received.length:0;
+  const badge=document.getElementById('pals-badge');
+  if(badge){badge.textContent=count;badge.classList.toggle('hidden',count===0);}
+}
+
+async function loadStudyPals(filter=''){
+  const list=document.getElementById('studypals-list');if(!list)return;
   list.innerHTML='<div class="feed-loading">Loading…</div>';
-  const profiles=await sbGet('profiles','?select=*&limit=100');
-  if(!Array.isArray(profiles)){list.innerHTML='<div class="feed-empty">No members found.</div>';return;}
+
+  // Load all in parallel
+  const[profiles,sent,received]=await Promise.all([
+    sbGet('profiles','?select=*&limit=100'),
+    sbGet('friend_requests',`?sender_id=eq.${USER_ID}&select=*`),
+    sbGet('friend_requests',`?receiver_id=eq.${USER_ID}&select=*`),
+  ]);
+
+  pendingRequests=Array.isArray(sent)?sent:[];
+  receivedRequests=Array.isArray(received)?received:[];
+  myFriends=[
+    ...pendingRequests.filter(r=>r.status==='accepted').map(r=>r.receiver_id),
+    ...receivedRequests.filter(r=>r.status==='accepted').map(r=>r.sender_id),
+  ];
+
+  // Show pending received requests
+  const pending=receivedRequests.filter(r=>r.status==='pending');
+  const reqSection=document.getElementById('friend-requests-section');
+  const reqList=document.getElementById('friend-requests-list');
+  if(reqSection&&reqList){
+    if(pending.length){
+      reqSection.classList.remove('hidden');
+      reqList.innerHTML=pending.map(r=>`
+        <div class="friend-req-item" data-req-id="${r.id}">
+          <div class="friend-req-avatar">${(r.sender_name||'U').charAt(0)}</div>
+          <div class="friend-req-info">
+            <div class="friend-req-name">${escHtml(r.sender_name||'User')}</div>
+            <div class="friend-req-sub">Wants to be your StudyPal</div>
+          </div>
+          <div class="friend-req-actions">
+            <button class="btn btn-primary btn-sm" data-accept-req="${r.id}" data-sender="${r.sender_id}">Accept</button>
+            <button class="btn btn-secondary btn-sm" data-decline-req="${r.id}">Decline</button>
+          </div>
+        </div>`).join('');
+      // Bind accept/decline
+      reqList.querySelectorAll('[data-accept-req]').forEach(btn=>{
+        btn.addEventListener('click',async()=>{
+          await sbUpdate('friend_requests',`?id=eq.${btn.dataset.acceptReq}`,{status:'accepted'});
+          loadStudyPals();
+          // Update badge
+          const b=document.getElementById('pals-badge');if(b){const n=Math.max(0,parseInt(b.textContent||'0')-1);b.textContent=n;b.classList.toggle('hidden',n===0);}
+        });
+      });
+      reqList.querySelectorAll('[data-decline-req]').forEach(btn=>{
+        btn.addEventListener('click',async()=>{
+          await sbUpdate('friend_requests',`?id=eq.${btn.dataset.declineReq}`,{status:'declined'});
+          loadStudyPals();
+        });
+      });
+      // Update badge
+      const badge=document.getElementById('pals-badge');
+      if(badge){badge.textContent=pending.length;badge.classList.remove('hidden');}
+    }else{
+      reqSection.classList.add('hidden');
+      const badge=document.getElementById('pals-badge');
+      if(badge)badge.classList.add('hidden');
+    }
+  }
+
+  if(!Array.isArray(profiles)){list.innerHTML='<div class="feed-empty">No users found.</div>';return;}
   const filtered=filter?profiles.filter(p=>(p.full_name||'').toLowerCase().includes(filter.toLowerCase())):profiles;
-  list.innerHTML=filtered.map(p=>`<div class="member-card"><div class="member-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}"/>`:(p.full_name||'U').charAt(0).toUpperCase()}</div><div class="member-name">${escHtml(p.full_name||'User')}</div><div class="member-role">${p.role||'member'}</div>${p.genre?`<div class="member-stats">📚 ${p.genre}</div>`:''}<button class="member-msg-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">${p.id===USER_ID?'You':'Message'}</button></div>`).join('');
-  list.querySelectorAll('.member-msg-btn:not([data-user-id="'+USER_ID+'"])').forEach(btn=>{
+
+  list.innerHTML=filtered.map(p=>{
+    if(p.id===USER_ID) return `<div class="sp-card">
+      <span class="sp-status you">You</span>
+      <div class="sp-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}"/>`:(p.full_name||'U').charAt(0)}</div>
+      <div class="sp-name">${escHtml(p.full_name||'User')}</div>
+      <div class="sp-role">${p.role||'member'}</div>
+      ${p.genre?`<div class="sp-genre">📚 ${p.genre}</div>`:''}
+    </div>`;
+
+    const isFriend=myFriends.includes(p.id);
+    const sentReq=pendingRequests.find(r=>r.receiver_id===p.id&&r.status==='pending');
+    const receivedReq=receivedRequests.find(r=>r.sender_id===p.id&&r.status==='pending');
+
+    let statusBadge='';
+    let actions='';
+
+    if(isFriend){
+      statusBadge=`<span class="sp-status friends">✓ Pals</span>`;
+      actions=`<button class="btn btn-primary btn-sm sp-msg-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">💬 Message</button>`;
+    }else if(sentReq){
+      statusBadge=`<span class="sp-status pending">Pending</span>`;
+      actions=`<button class="btn btn-secondary btn-sm" disabled>Request Sent</button>`;
+    }else if(receivedReq){
+      actions=`
+        <button class="btn btn-primary btn-sm sp-accept-btn" data-req-id="${receivedReq.id}">Accept</button>
+        <button class="btn btn-secondary btn-sm sp-decline-btn" data-req-id="${receivedReq.id}">Decline</button>`;
+    }else{
+      actions=`<button class="btn btn-secondary btn-sm sp-add-btn" data-user-id="${p.id}" data-user-name="${escHtml(p.full_name||'User')}">➕ Add Pal</button>`;
+    }
+
+    return `<div class="sp-card">
+      ${statusBadge}
+      <div class="sp-avatar" style="background:${p.theme_color||'#6366f1'}">${p.avatar_url?`<img src="${p.avatar_url}"/>`:(p.full_name||'U').charAt(0)}</div>
+      <div class="sp-name">${escHtml(p.full_name||'User')}</div>
+      <div class="sp-role">${p.role||'member'}</div>
+      ${p.genre?`<div class="sp-genre">📚 ${p.genre}</div>`:''}
+      <div class="sp-actions">${actions}</div>
+    </div>`;
+  }).join('');
+
+  // Bind actions
+  list.querySelectorAll('.sp-add-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      btn.disabled=true;btn.textContent='Sending…';
+      await sbPost('friend_requests',{sender_id:USER_ID,receiver_id:btn.dataset.userId,sender_name:USER_PROFILE?.full_name||'User',status:'pending'});
+      btn.textContent='Request Sent';
+    });
+  });
+  list.querySelectorAll('.sp-msg-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       openChat(btn.dataset.userId,btn.dataset.userName);
       document.querySelectorAll('.comm-tab-btn').forEach(b=>b.classList.remove('active'));
@@ -1198,8 +1418,21 @@ async function loadMembers(filter=''){
       document.getElementById('ctab-messages')?.classList.add('active');
     });
   });
+  list.querySelectorAll('.sp-accept-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      await sbUpdate('friend_requests',`?id=eq.${btn.dataset.reqId}`,{status:'accepted'});
+      loadStudyPals();
+    });
+  });
+  list.querySelectorAll('.sp-decline-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      await sbUpdate('friend_requests',`?id=eq.${btn.dataset.reqId}`,{status:'declined'});
+      loadStudyPals();
+    });
+  });
 }
-document.getElementById('search-members')?.addEventListener('input',function(){loadMembers(this.value);});
+
+document.getElementById('search-studypals')?.addEventListener('input',function(){loadStudyPals(this.value);});
 
 // ── Profile ───────────────────────────────────────────────────
 async function loadProfileTab(){
@@ -1470,6 +1703,8 @@ async function init(){
     const teacherBtn=document.getElementById('nav-teacher-btn');
     if(teacherBtn)teacherBtn.classList.toggle('hidden',profile?.role!=='teacher');
     if(profile?.class_code){schoolData.classCode=profile.class_code;schoolData.studentName=profile.full_name||'';}
+    // Check pending friend requests on login
+    checkPendingRequests();
   }
   showPage('landing');
 }
