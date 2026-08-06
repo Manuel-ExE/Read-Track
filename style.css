@@ -708,3 +708,43 @@ a{color:inherit;text-decoration:none;}
 /* Responsive */
 @media(max-width:900px){.fb-left-sidebar,.fb-right-sidebar{display:none;}}
 @media(max-width:600px){.fb-layout{padding:8px;}.fb-feed-main{gap:8px;}}
+
+/* ============================================================
+   STUDYPALS
+   ============================================================ */
+.studypals-wrap{padding:16px;max-width:900px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px;}
+.sp-section-title{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);padding-bottom:8px;border-bottom:1px solid var(--border);}
+.sp-search-wrap{width:100%;}
+
+/* Friend request banner */
+.friend-requests-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;}
+.friend-requests-list{display:flex;flex-direction:column;gap:8px;}
+.friend-req-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface-2);border-radius:var(--radius-sm);}
+.friend-req-avatar{width:44px;height:44px;border-radius:50%;background:var(--grad-1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0;overflow:hidden;}
+.friend-req-avatar img{width:100%;height:100%;object-fit:cover;}
+.friend-req-info{flex:1;min-width:0;}
+.friend-req-name{font-size:.92rem;font-weight:700;}
+.friend-req-sub{font-size:.75rem;color:var(--text-muted);}
+.friend-req-actions{display:flex;gap:6px;flex-shrink:0;}
+
+/* StudyPals grid */
+.studypals-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.sp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;box-shadow:var(--shadow);transition:all var(--transition);position:relative;}
+.sp-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.sp-avatar{width:64px;height:64px;border-radius:50%;background:var(--grad-1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;overflow:hidden;border:3px solid var(--border);}
+.sp-avatar img{width:100%;height:100%;object-fit:cover;}
+.sp-name{font-size:.95rem;font-weight:700;}
+.sp-role{font-size:.72rem;color:var(--text-muted);background:var(--surface-2);padding:2px 8px;border-radius:20px;}
+.sp-genre{font-size:.75rem;color:var(--text-muted);}
+.sp-status{position:absolute;top:12px;right:12px;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;}
+.sp-status.friends{background:rgba(34,197,94,.12);color:var(--success);}
+.sp-status.pending{background:rgba(245,158,11,.12);color:var(--warning);}
+.sp-status.you{background:var(--primary-light);color:var(--primary);}
+.sp-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%;}
+
+/* Realtime indicator */
+.realtime-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;margin-right:6px;animation:pulse 2s ease infinite;}
+.new-post-banner{background:var(--primary);color:#fff;text-align:center;padding:10px;border-radius:var(--radius-sm);cursor:pointer;font-size:.88rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;transition:background var(--transition);}
+.new-post-banner:hover{background:var(--primary-dark);}
+
+@media(max-width:600px){.studypals-list{grid-template-columns:1fr 1fr;}}
