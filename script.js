@@ -1,8 +1,7 @@
 /* ============================================================
-   ReadTrack — script.js
-   Camera · Geolocation · Timer · PDF.js · Session logic
+   ReadTrack V2 — script.js
+   Camera · Geolocation · Timer · PDF.js · PWA · Settings
    ============================================================ */
-
 'use strict';
 
 // ── PDF.js worker ──────────────────────────────────────────
@@ -11,18 +10,27 @@ if (typeof pdfjsLib !== 'undefined') {
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
+// ── Inject SVG gradient for circular timer ─────────────────
+document.body.insertAdjacentHTML('afterbegin', `
+  <svg class="svg-defs" aria-hidden="true">
+    <defs>
+      <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#6366f1"/>
+        <stop offset="100%" stop-color="#8b5cf6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+`);
+
 // ============================================================
 // UTILITIES
 // ============================================================
-
-/** Generate a short unique session ID */
 function generateSessionId() {
   const ts   = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
   return `RS-${ts}-${rand}`;
 }
 
-/** Format milliseconds → HH:MM:SS */
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const h = Math.floor(totalSeconds / 3600);
@@ -31,7 +39,6 @@ function formatDuration(ms) {
   return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 }
 
-/** Format a Date object to a readable local string */
 function formatDateTime(date) {
   return date.toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
@@ -39,54 +46,79 @@ function formatDateTime(date) {
   });
 }
 
-/** Detect browser name */
 function getBrowserName() {
   const ua = navigator.userAgent;
-  if (/Edg\//.test(ua))         return 'Microsoft Edge';
-  if (/OPR\/|Opera/.test(ua))   return 'Opera';
-  if (/Chrome\//.test(ua))      return 'Google Chrome';
-  if (/Firefox\//.test(ua))     return 'Mozilla Firefox';
-  if (/Safari\//.test(ua))      return 'Apple Safari';
+  if (/Edg\//.test(ua))        return 'Microsoft Edge';
+  if (/OPR\/|Opera/.test(ua))  return 'Opera';
+  if (/Chrome\//.test(ua))     return 'Google Chrome';
+  if (/Firefox\//.test(ua))    return 'Mozilla Firefox';
+  if (/Safari\//.test(ua))     return 'Apple Safari';
   return 'Unknown Browser';
 }
 
-/** Detect OS */
 function getOSName() {
   const ua = navigator.userAgent;
-  if (/Android/.test(ua))        return 'Android';
+  if (/Android/.test(ua))          return 'Android';
   if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
-  if (/Windows NT 10/.test(ua))  return 'Windows 10/11';
-  if (/Windows/.test(ua))        return 'Windows';
-  if (/Mac OS X/.test(ua))       return 'macOS';
-  if (/Linux/.test(ua))          return 'Linux';
+  if (/Windows NT 10/.test(ua))    return 'Windows 10/11';
+  if (/Windows/.test(ua))          return 'Windows';
+  if (/Mac OS X/.test(ua))         return 'macOS';
+  if (/Linux/.test(ua))            return 'Linux';
   return 'Unknown OS';
 }
 
-/** Detect device type */
 function getDeviceType() {
   const ua = navigator.userAgent;
-  if (/Tablet|iPad/.test(ua))                          return 'Tablet';
-  if (/Mobile|Android|iPhone|iPod/.test(ua))           return 'Mobile';
+  if (/Tablet|iPad/.test(ua))             return 'Tablet';
+  if (/Mobile|Android|iPhone|iPod/.test(ua)) return 'Mobile';
   return 'Desktop';
 }
+
+function getScreenResolution() {
+  return `${screen.width}x${screen.height}`;
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+const settings = {
+  theme: localStorage.getItem('rt-theme') || 'auto',
+};
+
+function applyTheme(theme) {
+  settings.theme = theme;
+  localStorage.setItem('rt-theme', theme);
+  if (theme === 'auto') {
+    document.body.removeAttribute('data-theme');
+  } else {
+    document.body.setAttribute('data-theme', theme);
+  }
+  const sel = document.getElementById('select-theme');
+  if (sel) sel.value = theme;
+}
+
+applyTheme(settings.theme);
 
 // ============================================================
 // PAGE ROUTER
 // ============================================================
-
 const pages = {
-  home:        document.getElementById('page-home'),
-  terms:       document.getElementById('page-terms'),
-  permissions: document.getElementById('page-permissions'),
-  session:     document.getElementById('page-session'),
-  pdf:         document.getElementById('page-pdf'),
-  complete:    document.getElementById('page-complete'),
+  landing:        document.getElementById('page-landing'),
+  terms:          document.getElementById('page-terms'),
+  permissions:    document.getElementById('page-permissions'),
+  session:        document.getElementById('page-session'),
+  pdf:            document.getElementById('page-pdf'),
+  complete:       document.getElementById('page-complete'),
+  settings:       document.getElementById('page-settings'),
+  errorCamera:    document.getElementById('page-error-camera'),
+  errorLocation:  document.getElementById('page-error-location'),
+  errorOffline:   document.getElementById('page-error-offline'),
 };
 
-let currentPage = 'home';
+let currentPage = 'landing';
 
 function showPage(name) {
-  Object.values(pages).forEach(p => p.classList.remove('active'));
+  Object.values(pages).forEach(p => { if (p) p.classList.remove('active'); });
   if (pages[name]) {
     pages[name].classList.add('active');
     currentPage = name;
@@ -97,39 +129,42 @@ function showPage(name) {
 // ============================================================
 // SESSION STATE
 // ============================================================
-
 const session = {
-  id:         '',
-  startTime:  null,
-  endTime:    null,
-  duration:   0,        // ms
-  lat:        null,
-  lng:        null,
-  accuracy:   null,
-  gpsTs:      null,
-  cameraOk:   false,
-  photoBlob:  null,     // captured verification photo
+  id:          '',
+  startTime:   null,
+  endTime:     null,
+  duration:    0,
+  lat:         null,
+  lng:         null,
+  accuracy:    null,
+  gpsTs:       null,
+  cameraOk:    false,
+  photoBlob:   null,
   photoBase64: null,
-  browser:    getBrowserName(),
-  os:         getOSName(),
-  device:     getDeviceType(),
+  browser:     getBrowserName(),
+  os:          getOSName(),
+  device:      getDeviceType(),
+  screenRes:   getScreenResolution(),
+  pdfName:     '',
 };
 
 // ============================================================
 // TIMER
 // ============================================================
-
 let timerInterval   = null;
-let timerStartTs    = null;  // Date.now() when timer last resumed
-let timerElapsed    = 0;     // accumulated ms before latest start
+let timerStartTs    = null;
+let timerElapsed    = 0;
 let timerRunning    = false;
 
-const timerDisplay      = document.getElementById('timer-display');
-const sessionStatusText = document.getElementById('session-status-text');
-const btnPauseResume    = document.getElementById('btn-pause-resume');
-const iconPause         = document.getElementById('icon-pause');
-const iconPlay          = document.getElementById('icon-play');
-const pauseResumeLabel  = document.getElementById('pause-resume-label');
+const timerDisplay         = document.getElementById('timer-display');
+const sessionStatusText    = document.getElementById('session-status-text');
+const btnPauseResume       = document.getElementById('btn-pause-resume');
+const iconPause            = document.getElementById('icon-pause');
+const iconPlay             = document.getElementById('icon-play');
+const pauseResumeLabel     = document.getElementById('pause-resume-label');
+const timerProgressCircle  = document.getElementById('timer-progress-circle');
+
+const CIRCLE_CIRCUMFERENCE = 565.5;
 
 function startTimer() {
   timerStartTs = Date.now();
@@ -155,9 +190,7 @@ function resumeTimer() {
 }
 
 function stopTimer() {
-  if (timerRunning) {
-    timerElapsed += Date.now() - timerStartTs;
-  }
+  if (timerRunning) timerElapsed += Date.now() - timerStartTs;
   clearInterval(timerInterval);
   timerRunning = false;
   session.duration = timerElapsed;
@@ -167,13 +200,21 @@ function stopTimer() {
 function tickTimer() {
   const current = timerElapsed + (Date.now() - timerStartTs);
   timerDisplay.textContent = formatDuration(current);
+  updateCircularProgress(current);
+}
+
+function updateCircularProgress(ms) {
+  const maxTime = 3600000;
+  const progress = Math.min(ms / maxTime, 1);
+  const offset = CIRCLE_CIRCUMFERENCE * (1 - progress);
+  if (timerProgressCircle) timerProgressCircle.style.strokeDashoffset = offset;
 }
 
 function updateTimerUI() {
   if (timerRunning) {
     timerDisplay.classList.remove('paused');
     sessionStatusText.classList.remove('paused');
-    sessionStatusText.textContent = 'Session Active';
+    sessionStatusText.textContent = 'Active';
     iconPause.classList.remove('hidden');
     iconPlay.classList.add('hidden');
     pauseResumeLabel.textContent = 'Pause';
@@ -187,15 +228,16 @@ function updateTimerUI() {
   }
 }
 
-btnPauseResume.addEventListener('click', () => {
-  if (timerRunning) pauseTimer();
-  else              resumeTimer();
-});
+if (btnPauseResume) {
+  btnPauseResume.addEventListener('click', () => {
+    if (timerRunning) pauseTimer();
+    else              resumeTimer();
+  });
+}
 
 // ============================================================
 // CAMERA
 // ============================================================
-
 const videoEl  = document.getElementById('camera-video');
 const canvasEl = document.getElementById('camera-canvas');
 let cameraStream = null;
@@ -206,7 +248,7 @@ async function requestCamera() {
       video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false,
     });
-    videoEl.srcObject = cameraStream;
+    if (videoEl) videoEl.srcObject = cameraStream;
     return true;
   } catch (err) {
     console.warn('Camera error:', err);
@@ -217,30 +259,24 @@ async function requestCamera() {
 function capturePhoto() {
   return new Promise((resolve) => {
     if (!cameraStream) { resolve(null); return; }
-
     const track    = cameraStream.getVideoTracks()[0];
-    const settings = track.getSettings();
-    const w        = settings.width  || 640;
-    const h        = settings.height || 480;
-
+    const s        = track.getSettings();
+    const w        = s.width  || 640;
+    const h        = s.height || 480;
     canvasEl.width  = w;
     canvasEl.height = h;
-
     const ctx = canvasEl.getContext('2d');
     ctx.drawImage(videoEl, 0, 0, w, h);
-
     canvasEl.toBlob(blob => {
       if (blob) {
         session.photoBlob = blob;
         const reader = new FileReader();
         reader.onloadend = () => {
-          session.photoBase64 = reader.result.split(',')[1]; // base64 only
+          session.photoBase64 = reader.result.split(',')[1];
           resolve(blob);
         };
         reader.readAsDataURL(blob);
-      } else {
-        resolve(null);
-      }
+      } else { resolve(null); }
     }, 'image/jpeg', 0.82);
   });
 }
@@ -255,11 +291,9 @@ function stopCamera() {
 // ============================================================
 // GEOLOCATION
 // ============================================================
-
 async function requestLocation() {
   return new Promise((resolve) => {
     if (!navigator.geolocation) { resolve(false); return; }
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         session.lat      = pos.coords.latitude;
@@ -268,19 +302,15 @@ async function requestLocation() {
         session.gpsTs    = pos.timestamp;
         resolve(true);
       },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        resolve(false);
-      },
+      (err) => { console.warn('Geolocation error:', err); resolve(false); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 }
 
 // ============================================================
-// PERMISSIONS PAGE LOGIC
+// PERMISSIONS PAGE
 // ============================================================
-
 let cameraGranted   = false;
 let locationGranted = false;
 
@@ -292,68 +322,72 @@ const permsError         = document.getElementById('perms-error');
 const btnGrantPerms      = document.getElementById('btn-grant-perms');
 
 function setPermBadge(el, card, state) {
-  const badgeMap = {
+  const map = {
     pending: '<span class="badge badge-pending">Pending</span>',
     granted: '<span class="badge badge-granted">Granted ✓</span>',
     denied:  '<span class="badge badge-denied">Denied ✗</span>',
   };
-  el.innerHTML = badgeMap[state] || badgeMap.pending;
-  card.className = 'perm-card' + (state === 'granted' ? ' granted' : state === 'denied' ? ' denied' : '');
+  if (el) el.innerHTML = map[state] || map.pending;
+  if (card) card.className = 'perm-card' + (state === 'granted' ? ' granted' : state === 'denied' ? ' denied' : '');
 }
 
-btnGrantPerms.addEventListener('click', async () => {
-  btnGrantPerms.disabled = true;
-  btnGrantPerms.textContent = 'Requesting…';
-  permsError.classList.add('hidden');
+if (btnGrantPerms) {
+  btnGrantPerms.addEventListener('click', async () => {
+    btnGrantPerms.disabled = true;
+    btnGrantPerms.textContent = 'Requesting…';
+    if (permsError) permsError.classList.add('hidden');
 
-  // Request camera
-  setPermBadge(permStatusCamera, permCardCamera, 'pending');
-  cameraGranted = await requestCamera();
-  setPermBadge(permStatusCamera, permCardCamera, cameraGranted ? 'granted' : 'denied');
+    setPermBadge(permStatusCamera, permCardCamera, 'pending');
+    cameraGranted = await requestCamera();
+    setPermBadge(permStatusCamera, permCardCamera, cameraGranted ? 'granted' : 'denied');
 
-  // Request location
-  setPermBadge(permStatusLocation, permCardLocation, 'pending');
-  locationGranted = await requestLocation();
-  setPermBadge(permStatusLocation, permCardLocation, locationGranted ? 'granted' : 'denied');
+    setPermBadge(permStatusLocation, permCardLocation, 'pending');
+    locationGranted = await requestLocation();
+    setPermBadge(permStatusLocation, permCardLocation, locationGranted ? 'granted' : 'denied');
 
-  if (cameraGranted && locationGranted) {
-    // Both granted — start session
+    if (!cameraGranted) {
+      btnGrantPerms.disabled = false;
+      btnGrantPerms.textContent = 'Try Again';
+      showPage('errorCamera'); return;
+    }
+    if (!locationGranted) {
+      btnGrantPerms.disabled = false;
+      btnGrantPerms.textContent = 'Try Again';
+      showPage('errorLocation'); return;
+    }
+
     await beginSession();
-  } else {
-    permsError.classList.remove('hidden');
-    btnGrantPerms.disabled = false;
-    btnGrantPerms.textContent = 'Try Again';
-  }
-});
+  });
+}
 
 // ============================================================
 // BEGIN SESSION
 // ============================================================
-
 async function beginSession() {
-  // Generate session ID
   session.id        = generateSessionId();
   session.startTime = new Date();
 
-  // Capture verification photo (non-blocking — best effort)
   const photo = await capturePhoto();
-  session.cameraOk = !!photo;
+  session.cameraOk  = !!photo;
 
-  // Update session page UI
-  document.getElementById('session-id-label').textContent = session.id;
-  document.getElementById('status-camera').textContent    = session.cameraOk ? 'Verified ✓' : 'No Photo';
-  document.getElementById('status-location').textContent  = session.lat ? 'Captured ✓' : 'Unavailable';
+  const idLabel = document.getElementById('session-id-label');
+  if (idLabel) idLabel.textContent = session.id;
 
-  if (!session.cameraOk) {
-    document.getElementById('status-camera').className = 'status-card-value status-warning';
+  const statusCam = document.getElementById('status-camera');
+  const statusLoc = document.getElementById('status-location');
+
+  if (statusCam) {
+    statusCam.textContent  = session.cameraOk ? 'Verified ✓' : 'No Photo';
+    statusCam.className    = 'status-value ' + (session.cameraOk ? 'status-ok' : 'status-warning');
   }
-  if (!session.lat) {
-    document.getElementById('status-location').className = 'status-card-value status-warning';
+  if (statusLoc) {
+    statusLoc.textContent  = session.lat ? 'Captured ✓' : 'Unavailable';
+    statusLoc.className    = 'status-value ' + (session.lat ? 'status-ok' : 'status-warning');
   }
 
-  // Reset timer state
-  timerElapsed = 0;
-  timerStartTs = null;
+  timerElapsed = 0; timerStartTs = null;
+  if (timerProgressCircle) timerProgressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
+  if (timerDisplay) timerDisplay.textContent = '00:00:00';
 
   showPage('session');
   startTimer();
@@ -362,77 +396,69 @@ async function beginSession() {
 // ============================================================
 // END SESSION
 // ============================================================
-
-document.getElementById('btn-end-session').addEventListener('click', () => {
-  if (!confirm('Are you sure you want to end the session?')) return;
-  endSession();
-});
+const btnEndSession = document.getElementById('btn-end-session');
+if (btnEndSession) {
+  btnEndSession.addEventListener('click', () => {
+    if (!confirm('Are you sure you want to end the session?')) return;
+    endSession();
+  });
+}
 
 async function endSession() {
   stopTimer();
   session.endTime = new Date();
-
-  // Optionally capture a final photo
-  if (cameraStream && !session.photoBase64) {
-    await capturePhoto();
-  }
-
+  if (cameraStream && !session.photoBase64) await capturePhoto();
   stopCamera();
-
-  // Populate complete page
   populateCompletePage();
   showPage('complete');
-
-  // Send to backend
   await sendSessionData();
 }
 
 function populateCompletePage() {
-  document.getElementById('c-session-id').textContent = session.id;
-  document.getElementById('c-duration').textContent   = formatDuration(session.duration);
-  document.getElementById('c-start').textContent      = formatDateTime(session.startTime);
-  document.getElementById('c-end').textContent        = formatDateTime(session.endTime);
-  document.getElementById('c-location').textContent   =
-    session.lat
-      ? `${session.lat.toFixed(5)}, ${session.lng.toFixed(5)}`
-      : 'Unavailable';
-  document.getElementById('c-camera').textContent     = session.cameraOk ? 'Verified ✓' : 'Not captured';
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('c-duration', formatDuration(session.duration));
+  set('c-start',    formatDateTime(session.startTime));
+  set('c-end',      formatDateTime(session.endTime));
+  set('c-location', session.lat ? `${session.lat.toFixed(5)}, ${session.lng.toFixed(5)}` : 'Unavailable');
+  set('c-camera',   session.cameraOk ? 'Verified ✓' : 'Not captured');
 }
 
 // ============================================================
-// SEND SESSION DATA TO BACKEND
+// SEND SESSION DATA
 // ============================================================
-
 async function sendSessionData() {
   const sendingEl = document.getElementById('complete-sending');
   const sentEl    = document.getElementById('complete-sent');
   const errorEl   = document.getElementById('complete-error');
 
-  sendingEl.classList.remove('hidden');
-  sentEl.classList.add('hidden');
-  errorEl.classList.add('hidden');
+  if (sendingEl) sendingEl.classList.remove('hidden');
+  if (sentEl)    sentEl.classList.add('hidden');
+  if (errorEl)   errorEl.classList.add('hidden');
 
-  // Build multipart form to support photo upload
   const formData = new FormData();
   formData.append('sessionId',    session.id);
   formData.append('startTime',    session.startTime.toISOString());
   formData.append('endTime',      session.endTime.toISOString());
   formData.append('duration',     formatDuration(session.duration));
   formData.append('durationMs',   String(session.duration));
-  formData.append('latitude',     session.lat  != null ? String(session.lat)      : '');
-  formData.append('longitude',    session.lng  != null ? String(session.lng)      : '');
+  formData.append('latitude',     session.lat      != null ? String(session.lat)      : '');
+  formData.append('longitude',    session.lng      != null ? String(session.lng)      : '');
   formData.append('accuracy',     session.accuracy != null ? String(session.accuracy) : '');
-  formData.append('gpsTimestamp', session.gpsTs != null ? String(session.gpsTs)   : '');
+  formData.append('gpsTimestamp', session.gpsTs    != null ? String(session.gpsTs)    : '');
   formData.append('browser',      session.browser);
   formData.append('os',           session.os);
   formData.append('device',       session.device);
+  formData.append('screenRes',    session.screenRes);
   formData.append('cameraOk',     String(session.cameraOk));
+  formData.append('pdfName',      session.pdfName || '');
 
   if (session.photoBlob) {
     formData.append('photo', session.photoBlob, `verify-${session.id}.jpg`);
   }
 
   try {
+    if (!navigator.onLine) throw new Error('Offline');
+
     const res = await fetch('/.netlify/functions/session', {
       method: 'POST',
       body: formData,
@@ -440,14 +466,13 @@ async function sendSessionData() {
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    sendingEl.classList.add('hidden');
-    sentEl.classList.remove('hidden');
+    if (sendingEl) sendingEl.classList.add('hidden');
+    if (sentEl)    sentEl.classList.remove('hidden');
   } catch (err) {
     console.error('Send error:', err);
-    sendingEl.classList.add('hidden');
-    errorEl.classList.remove('hidden');
+    if (sendingEl) sendingEl.classList.add('hidden');
+    if (errorEl)   errorEl.classList.remove('hidden');
 
-    // Persist locally as fallback
     try {
       const fallback = {
         sessionId: session.id,
@@ -456,241 +481,246 @@ async function sendSessionData() {
         duration:  formatDuration(session.duration),
         lat:       session.lat,
         lng:       session.lng,
-        accuracy:  session.accuracy,
         browser:   session.browser,
         os:        session.os,
         device:    session.device,
+        screenRes: session.screenRes,
         cameraOk:  session.cameraOk,
       };
-      localStorage.setItem(`readtrack-${session.id}`, JSON.stringify(fallback));
-    } catch (_) { /* storage full or unavailable */ }
+      localStorage.setItem(`rt-${session.id}`, JSON.stringify(fallback));
+    } catch (_) { /* ignore */ }
   }
 }
 
 // ============================================================
 // PDF READER
 // ============================================================
+let pdfDoc        = null;
+let pdfPageNum    = 1;
+let pdfScale      = 1.5;
+let pdfRendering  = false;
+let pdfPendingPg  = null;
 
-let pdfDoc       = null;
-let pdfPageNum   = 1;
-let pdfScale     = 1.5;
-let pdfRendering = false;
-let pdfPendingPage = null;
-
-const pdfCanvas       = document.getElementById('pdf-canvas');
-const pdfCtx          = pdfCanvas.getContext('2d');
-const pdfCurrentPage  = document.getElementById('pdf-current-page');
-const pdfTotalPages   = document.getElementById('pdf-total-pages');
-const pdfFilename     = document.getElementById('pdf-filename');
-const pdfDropZone     = document.getElementById('pdf-drop-zone');
-const pdfViewerWrap   = document.getElementById('pdf-viewer-wrap');
-const zoomLevelEl     = document.getElementById('zoom-level');
+const pdfCanvas      = document.getElementById('pdf-canvas');
+const pdfCtx         = pdfCanvas ? pdfCanvas.getContext('2d') : null;
+const pdfCurrentPage = document.getElementById('pdf-current-page');
+const pdfTotalPages  = document.getElementById('pdf-total-pages');
+const pdfFilenameEl  = document.getElementById('pdf-filename');
+const pdfDropZone    = document.getElementById('pdf-drop-zone');
+const pdfViewerWrap  = document.getElementById('pdf-viewer-wrap');
+const zoomLevelEl    = document.getElementById('zoom-level');
+const pdfProgressBar = document.getElementById('pdf-progress-bar');
+const pdfProgressFill= document.getElementById('pdf-progress-fill');
 
 function renderPdfPage(num) {
-  if (!pdfDoc) return;
-
-  if (pdfRendering) {
-    pdfPendingPage = num;
-    return;
-  }
-
+  if (!pdfDoc || !pdfCtx) return;
+  if (pdfRendering) { pdfPendingPg = num; return; }
   pdfRendering = true;
-  pdfCurrentPage.textContent = num;
+  if (pdfCurrentPage) pdfCurrentPage.textContent = num;
+  updatePdfProgress(num);
 
   pdfDoc.getPage(num).then(page => {
     const viewport = page.getViewport({ scale: pdfScale });
     pdfCanvas.height = viewport.height;
     pdfCanvas.width  = viewport.width;
-
-    const renderCtx = { canvasContext: pdfCtx, viewport };
-
-    page.render(renderCtx).promise.then(() => {
+    page.render({ canvasContext: pdfCtx, viewport }).promise.then(() => {
       pdfRendering = false;
-      if (pdfPendingPage !== null) {
-        renderPdfPage(pdfPendingPage);
-        pdfPendingPage = null;
+      if (pdfPendingPg !== null) {
+        renderPdfPage(pdfPendingPg);
+        pdfPendingPg = null;
       }
     });
   });
 }
 
+function updatePdfProgress(num) {
+  if (!pdfDoc || !pdfProgressFill || !pdfProgressBar) return;
+  const pct = Math.round((num / pdfDoc.numPages) * 100);
+  pdfProgressFill.style.width = pct + '%';
+  pdfProgressBar.classList.remove('hidden');
+}
+
 function loadPdfFile(file) {
   if (!file || file.type !== 'application/pdf') return;
-
-  pdfFilename.textContent = file.name.length > 30
-    ? file.name.slice(0, 27) + '…'
-    : file.name;
+  const name = file.name.length > 30 ? file.name.slice(0, 27) + '…' : file.name;
+  if (pdfFilenameEl) pdfFilenameEl.textContent = name;
+  session.pdfName = file.name;
 
   const reader = new FileReader();
   reader.onload = (e) => {
-    const typedArray = new Uint8Array(e.target.result);
-    pdfjsLib.getDocument(typedArray).promise.then(doc => {
-      pdfDoc     = doc;
+    const arr = new Uint8Array(e.target.result);
+    pdfjsLib.getDocument(arr).promise.then(doc => {
+      pdfDoc    = doc;
       pdfPageNum = 1;
-      pdfTotalPages.textContent = doc.numPages;
-
-      pdfDropZone.classList.add('hidden');
-      pdfViewerWrap.classList.remove('hidden');
-
+      if (pdfTotalPages) pdfTotalPages.textContent = doc.numPages;
+      if (pdfDropZone)   pdfDropZone.classList.add('hidden');
+      if (pdfViewerWrap) pdfViewerWrap.classList.remove('hidden');
       renderPdfPage(pdfPageNum);
-    }).catch(err => {
-      alert('Could not open PDF: ' + err.message);
-    });
+    }).catch(err => alert('Could not open PDF: ' + err.message));
   };
   reader.readAsArrayBuffer(file);
 }
 
-// File input
-document.getElementById('btn-select-pdf').addEventListener('click', () => {
-  document.getElementById('pdf-file-input').click();
-});
+const btnSelectPdf = document.getElementById('btn-select-pdf');
+const pdfFileInput = document.getElementById('pdf-file-input');
+if (btnSelectPdf) btnSelectPdf.addEventListener('click', () => pdfFileInput.click());
+if (pdfFileInput)  pdfFileInput.addEventListener('change', e => { if (e.target.files[0]) loadPdfFile(e.target.files[0]); });
 
-document.getElementById('pdf-file-input').addEventListener('change', (e) => {
-  if (e.target.files[0]) loadPdfFile(e.target.files[0]);
-});
+if (pdfDropZone) {
+  pdfDropZone.addEventListener('dragover',  e => { e.preventDefault(); pdfDropZone.style.borderColor = 'var(--primary)'; });
+  pdfDropZone.addEventListener('dragleave', ()=> { pdfDropZone.style.borderColor = ''; });
+  pdfDropZone.addEventListener('drop', e => { e.preventDefault(); pdfDropZone.style.borderColor = ''; if (e.dataTransfer.files[0]) loadPdfFile(e.dataTransfer.files[0]); });
+}
 
-// Drag & drop
-pdfDropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  pdfDropZone.style.borderColor = 'var(--primary)';
-});
+const btnPrev = document.getElementById('btn-prev-page');
+const btnNext = document.getElementById('btn-next-page');
+if (btnPrev) btnPrev.addEventListener('click', () => { if (pdfDoc && pdfPageNum > 1) renderPdfPage(--pdfPageNum); });
+if (btnNext) btnNext.addEventListener('click', () => { if (pdfDoc && pdfPageNum < pdfDoc.numPages) renderPdfPage(++pdfPageNum); });
 
-pdfDropZone.addEventListener('dragleave', () => {
-  pdfDropZone.style.borderColor = '';
-});
-
-pdfDropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  pdfDropZone.style.borderColor = '';
-  if (e.dataTransfer.files[0]) loadPdfFile(e.dataTransfer.files[0]);
-});
-
-// Pagination
-document.getElementById('btn-prev-page').addEventListener('click', () => {
-  if (!pdfDoc || pdfPageNum <= 1) return;
-  pdfPageNum--;
-  renderPdfPage(pdfPageNum);
-});
-
-document.getElementById('btn-next-page').addEventListener('click', () => {
-  if (!pdfDoc || pdfPageNum >= pdfDoc.numPages) return;
-  pdfPageNum++;
-  renderPdfPage(pdfPageNum);
-});
-
-// Zoom
-document.getElementById('btn-zoom-in').addEventListener('click', () => {
+const btnZoomIn  = document.getElementById('btn-zoom-in');
+const btnZoomOut = document.getElementById('btn-zoom-out');
+if (btnZoomIn) btnZoomIn.addEventListener('click', () => {
   if (pdfScale >= 4) return;
   pdfScale = Math.round((pdfScale + 0.25) * 100) / 100;
-  zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
+  if (zoomLevelEl) zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
+  if (pdfDoc) renderPdfPage(pdfPageNum);
+});
+if (btnZoomOut) btnZoomOut.addEventListener('click', () => {
+  if (pdfScale <= 0.5) return;
+  pdfScale = Math.round((pdfScale - 0.25) * 100) / 100;
+  if (zoomLevelEl) zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
   if (pdfDoc) renderPdfPage(pdfPageNum);
 });
 
-document.getElementById('btn-zoom-out').addEventListener('click', () => {
-  if (pdfScale <= 0.5) return;
-  pdfScale = Math.round((pdfScale - 0.25) * 100) / 100;
-  zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
-  if (pdfDoc) renderPdfPage(pdfPageNum);
-});
+const btnFullscreen = document.getElementById('btn-pdf-fullscreen');
+if (btnFullscreen) {
+  btnFullscreen.addEventListener('click', () => {
+    const el = pdfViewerWrap || document.getElementById('page-pdf');
+    if (el && el.requestFullscreen) el.requestFullscreen();
+    else if (el && el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+}
 
 // ============================================================
 // NAVIGATION WIRING
 // ============================================================
 
-// Home → Terms
-document.getElementById('btn-start').addEventListener('click', () => {
-  showPage('terms');
+// Landing
+const btnHeroStart = document.getElementById('btn-hero-start');
+const btnHeroLearn = document.getElementById('btn-hero-learn');
+if (btnHeroStart) btnHeroStart.addEventListener('click', () => showPage('terms'));
+if (btnHeroLearn) btnHeroLearn.addEventListener('click', () => {
+  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
 });
 
-// Home terms link → Terms
-document.getElementById('link-terms-home').addEventListener('click', (e) => {
-  e.preventDefault();
-  showPage('terms');
-});
+// Footer links
+document.getElementById('link-footer-terms')?.addEventListener('click', e => { e.preventDefault(); showPage('terms'); });
+document.getElementById('link-footer-settings')?.addEventListener('click', e => { e.preventDefault(); showPage('settings'); });
 
-// Terms back → Home
-document.getElementById('btn-back-terms').addEventListener('click', () => {
-  showPage('home');
-});
+// Terms page
+document.getElementById('btn-back-terms')?.addEventListener('click', () => showPage('landing'));
 
-// Terms checkbox enables button
 const chkAgree = document.getElementById('chk-agree');
 const btnAgree = document.getElementById('btn-agree');
-
-chkAgree.addEventListener('change', () => {
-  btnAgree.disabled = !chkAgree.checked;
-});
-
-// Terms agree → Permissions
-btnAgree.addEventListener('click', () => {
-  if (!chkAgree.checked) return;
-  // Reset permission state
-  cameraGranted   = false;
-  locationGranted = false;
+if (chkAgree) chkAgree.addEventListener('change', () => { if (btnAgree) btnAgree.disabled = !chkAgree.checked; });
+if (btnAgree) btnAgree.addEventListener('click', () => {
+  if (!chkAgree || !chkAgree.checked) return;
   setPermBadge(permStatusCamera,   permCardCamera,   'pending');
   setPermBadge(permStatusLocation, permCardLocation, 'pending');
-  permsError.classList.add('hidden');
-  btnGrantPerms.disabled    = false;
-  btnGrantPerms.textContent = 'Grant Permissions';
+  if (permsError)    permsError.classList.add('hidden');
+  if (btnGrantPerms) { btnGrantPerms.disabled = false; btnGrantPerms.textContent = 'Grant Permissions'; }
   showPage('permissions');
 });
 
-// Permissions back → Terms
-document.getElementById('btn-back-perms').addEventListener('click', () => {
-  stopCamera();
+// Permissions back
+document.getElementById('btn-back-perms')?.addEventListener('click', () => { stopCamera(); showPage('terms'); });
+
+// Session page
+document.getElementById('btn-open-pdf')?.addEventListener('click', () => showPage('pdf'));
+document.getElementById('btn-session-settings')?.addEventListener('click', () => showPage('settings'));
+
+// PDF back
+document.getElementById('btn-back-pdf')?.addEventListener('click', () => showPage('session'));
+
+// Complete page
+document.getElementById('btn-new-session')?.addEventListener('click', () => {
+  resetSession();
   showPage('terms');
 });
-
-// Session → PDF reader
-document.getElementById('btn-open-pdf').addEventListener('click', () => {
-  showPage('pdf');
+document.getElementById('btn-back-home')?.addEventListener('click', () => {
+  resetSession();
+  showPage('landing');
 });
 
-// PDF back → Session
-document.getElementById('btn-back-pdf').addEventListener('click', () => {
-  showPage('session');
+// Settings back
+document.getElementById('btn-back-settings')?.addEventListener('click', () => showPage('landing'));
+const selectTheme = document.getElementById('select-theme');
+if (selectTheme) selectTheme.addEventListener('change', e => applyTheme(e.target.value));
+
+// Error pages
+document.getElementById('btn-retry-camera')?.addEventListener('click',   () => showPage('permissions'));
+document.getElementById('btn-error-camera-home')?.addEventListener('click', () => showPage('landing'));
+document.getElementById('btn-retry-location')?.addEventListener('click',  () => showPage('permissions'));
+document.getElementById('btn-error-location-home')?.addEventListener('click', () => showPage('landing'));
+document.getElementById('btn-retry-offline')?.addEventListener('click',   () => {
+  if (navigator.onLine) showPage('landing');
+  else alert('Still offline. Please check your connection.');
 });
+document.getElementById('btn-error-offline-home')?.addEventListener('click', () => showPage('landing'));
 
-// Complete → New Session
-document.getElementById('btn-new-session').addEventListener('click', () => {
-  // Reset all state
-  timerElapsed  = 0;
-  timerStartTs  = null;
-  timerRunning  = false;
-  session.id         = '';
-  session.startTime  = null;
-  session.endTime    = null;
-  session.duration   = 0;
-  session.lat        = null;
-  session.lng        = null;
-  session.accuracy   = null;
-  session.cameraOk   = false;
-  session.photoBlob  = null;
-  session.photoBase64 = null;
-
-  timerDisplay.textContent = '00:00:00';
-  timerDisplay.classList.remove('paused');
-  sessionStatusText.textContent = 'Session Active';
-  sessionStatusText.classList.remove('paused');
-  iconPause.classList.remove('hidden');
-  iconPlay.classList.add('hidden');
-  pauseResumeLabel.textContent = 'Pause';
-
-  chkAgree.checked = false;
-  btnAgree.disabled = true;
-
-  document.getElementById('complete-sending').classList.remove('hidden');
-  document.getElementById('complete-sent').classList.add('hidden');
-  document.getElementById('complete-error').classList.add('hidden');
-
-  showPage('home');
+// FAQ accordion
+document.querySelectorAll('.faq-question').forEach(q => {
+  q.addEventListener('click', () => {
+    const item = q.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
 });
 
 // ============================================================
-// PREVENT ACCIDENTAL BACK / CLOSE DURING SESSION
+// RESET SESSION
 // ============================================================
+function resetSession() {
+  timerElapsed = 0; timerStartTs = null; timerRunning = false;
+  session.id = ''; session.startTime = null; session.endTime = null;
+  session.duration = 0; session.lat = null; session.lng = null;
+  session.accuracy = null; session.cameraOk = false;
+  session.photoBlob = null; session.photoBase64 = null;
+  session.pdfName = '';
 
-window.addEventListener('beforeunload', (e) => {
+  if (timerDisplay)         timerDisplay.textContent = '00:00:00';
+  if (timerDisplay)         timerDisplay.classList.remove('paused');
+  if (sessionStatusText)    sessionStatusText.textContent = 'Active';
+  if (sessionStatusText)    sessionStatusText.classList.remove('paused');
+  if (iconPause)            iconPause.classList.remove('hidden');
+  if (iconPlay)             iconPlay.classList.add('hidden');
+  if (pauseResumeLabel)     pauseResumeLabel.textContent = 'Pause';
+  if (timerProgressCircle)  timerProgressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
+
+  if (chkAgree)   chkAgree.checked = false;
+  if (btnAgree)   btnAgree.disabled = true;
+
+  const completeSending = document.getElementById('complete-sending');
+  const completeSent    = document.getElementById('complete-sent');
+  const completeError   = document.getElementById('complete-error');
+  if (completeSending) completeSending.classList.remove('hidden');
+  if (completeSent)    completeSent.classList.add('hidden');
+  if (completeError)   completeError.classList.add('hidden');
+
+  pdfDoc = null; pdfPageNum = 1;
+  if (pdfDropZone)     pdfDropZone.classList.remove('hidden');
+  if (pdfViewerWrap)   pdfViewerWrap.classList.add('hidden');
+  if (pdfProgressBar)  pdfProgressBar.classList.add('hidden');
+  if (pdfFilenameEl)   pdfFilenameEl.textContent = 'PDF Reader';
+  if (pdfCurrentPage)  pdfCurrentPage.textContent = '—';
+  if (pdfTotalPages)   pdfTotalPages.textContent = '—';
+}
+
+// ============================================================
+// PREVENT ACCIDENTAL CLOSE
+// ============================================================
+window.addEventListener('beforeunload', e => {
   if (currentPage === 'session' && timerRunning) {
     e.preventDefault();
     e.returnValue = 'Your reading session is active. Are you sure you want to leave?';
@@ -699,7 +729,24 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 // ============================================================
+// OFFLINE DETECTION
+// ============================================================
+window.addEventListener('offline', () => {
+  if (currentPage !== 'landing') showPage('errorOffline');
+});
+
+// ============================================================
+// PWA REGISTRATION
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('✅ Service Worker registered'))
+      .catch(err => console.warn('⚠️ Service Worker registration failed:', err));
+  });
+}
+
+// ============================================================
 // INIT
 // ============================================================
-
-showPage('home');
+showPage('landing');
