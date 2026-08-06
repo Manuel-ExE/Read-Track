@@ -13,12 +13,16 @@ const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 // ── Parse multipart/form-data ─────────────────────────────────
 function parseMultipart(event) {
   const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
-  const boundary    = contentType.split('boundary=')[1];
+  const boundary    = contentType.split('boundary=')[1]?.split(';')[0]?.trim();
   if (!boundary) return { fields:{}, photoBuffer:null, photoName:'verification.jpg' };
 
-  const bodyBuffer = event.isBase64Encoded
-    ? Buffer.from(event.body, 'base64')
-    : Buffer.from(event.body, 'binary');
+  // Always decode as base64 first if flagged, otherwise try both
+  let bodyBuffer;
+  if (event.isBase64Encoded) {
+    bodyBuffer = Buffer.from(event.body, 'base64');
+  } else {
+    bodyBuffer = Buffer.from(event.body, 'latin1');
+  }
 
   const fields = {}; let photoBuffer = null; let photoName = 'verification.jpg';
   const boundaryBuf = Buffer.from('--' + boundary);
@@ -175,6 +179,13 @@ exports.handler = async function(event) {
 
   try {
     const {fields, photoBuffer, photoName} = parseMultipart(event);
+    
+    // Debug log to see what we received
+    console.log('Parsed fields:', JSON.stringify(Object.keys(fields)));
+    console.log('sessionId:', fields.sessionId);
+    console.log('isBase64:', event.isBase64Encoded);
+    console.log('contentType:', event.headers['content-type']||event.headers['Content-Type']);
+
     const sessionId = str(fields.sessionId, 50);
     if (!sessionId) return {statusCode:400, body:JSON.stringify({error:'sessionId required.'})};
 
