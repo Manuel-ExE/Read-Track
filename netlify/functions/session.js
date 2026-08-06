@@ -185,6 +185,7 @@ exports.handler = async function(event) {
     console.log('sessionId:', fields.sessionId);
     console.log('isBase64:', event.isBase64Encoded);
     console.log('contentType:', event.headers['content-type']||event.headers['Content-Type']);
+    console.log('photoBuffer size:', photoBuffer ? photoBuffer.length : 'none');
 
     const sessionId = str(fields.sessionId, 50);
     if (!sessionId) return {statusCode:400, body:JSON.stringify({error:'sessionId required.'})};
