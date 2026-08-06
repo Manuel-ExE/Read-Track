@@ -940,3 +940,84 @@ a { color: inherit; text-decoration: none; }
 .achievement-emoji { font-size: 2rem; }
 .achievement-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
 .achievement-desc { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
+
+/* ============================================================
+   CERTIFICATE PAGE
+   ============================================================ */
+.cert-canvas {
+  width: 100%; max-width: 500px;
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  display: block;
+}
+.cert-hint {
+  font-size: 0.82rem; color: var(--text-muted);
+  text-align: center; margin-top: 8px;
+}
+
+/* ============================================================
+   QR CODE
+   ============================================================ */
+.qr-wrap {
+  background: #fff; border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow-md);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.qr-wrap canvas { display: block; width: 200px !important; height: 200px !important; }
+
+.qr-info {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 0;
+  width: 100%; max-width: 340px; box-shadow: var(--shadow);
+}
+.qr-info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  font-size: 0.85rem; gap: 12px;
+}
+.qr-info-row:last-child { border-bottom: none; }
+.qr-info-row span:first-child { color: var(--text-muted); font-weight: 500; }
+.qr-info-row span:last-child  { font-weight: 700; text-align: right; }
+
+.qr-preview-wrap {
+  background: #fff; border-radius: var(--radius-sm);
+  padding: 12px; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.qr-preview-wrap canvas { width: 120px !important; height: 120px !important; display: block; }
+
+/* ============================================================
+   CHALLENGES PAGE
+   ============================================================ */
+.challenges-list { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+
+.challenge-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: var(--shadow); transition: all var(--transition);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.challenge-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.challenge-card.joined { border-color: var(--success); background: rgba(34,197,94,0.05); }
+
+.challenge-emoji { font-size: 2.2rem; flex-shrink: 0; }
+.challenge-body  { flex: 1; }
+.challenge-name  { font-size: 1rem; font-weight: 700; margin-bottom: 3px; }
+.challenge-desc  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; }
+.challenge-progress {
+  margin-top: 8px; background: var(--surface-2);
+  border-radius: 20px; height: 5px; overflow: hidden;
+}
+.challenge-progress-fill {
+  height: 100%; background: var(--grad-1);
+  border-radius: 20px; transition: width 0.4s ease;
+}
+.challenge-meta {
+  font-size: 0.7rem; color: var(--text-muted);
+  margin-top: 4px; font-weight: 500;
+}
+.challenge-action { flex-shrink: 0; }
+.challenge-badge {
+  font-size: 0.72rem; font-weight: 700; padding: 4px 10px;
+  border-radius: 20px; background: rgba(34,197,94,0.12); color: var(--success);
+}
