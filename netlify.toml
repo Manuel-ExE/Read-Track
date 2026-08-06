@@ -20,6 +20,17 @@
   force = true
 
 [[redirects]]
+  from = "/api/config"
+  to   = "/.netlify/functions/config"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth"
+  to   = "/auth.html"
+  status = 200
+
+[[redirects]]
   from = "/teacher"
   to   = "/teacher.html"
   status = 200
