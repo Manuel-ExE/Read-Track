@@ -1,256 +1,223 @@
-/* ReadTrack — community.css */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#6366f1" />
+  <title>ReadTrack — Community</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="community.css" />
+</head>
+<body>
 
-body { background: var(--bg); }
+  <!-- Not logged in guard -->
+  <div id="comm-guard" class="comm-guard hidden">
+    <div class="comm-guard-card">
+      <div class="comm-guard-icon">🔒</div>
+      <h2>Sign In Required</h2>
+      <p>You need an account to access the community.</p>
+      <a href="/auth.html" class="btn btn-primary btn-lg">Sign In / Sign Up</a>
+      <a href="/" class="auth-skip">← Back to ReadTrack</a>
+    </div>
+  </div>
 
-/* ── Guard ── */
-.comm-guard {
-  min-height:100dvh; display:flex; align-items:center; justify-content:center;
-  padding:2rem; background:linear-gradient(145deg,#0f172a,#1e1b4b);
-}
-.comm-guard-card {
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:2.5rem 2rem;
-  max-width:380px; width:100%; text-align:center;
-  display:flex; flex-direction:column; align-items:center; gap:1rem;
-  box-shadow:var(--shadow-lg);
-}
-.comm-guard-icon { font-size:3rem; }
-.comm-guard-card h2 { font-size:1.4rem; font-weight:800; }
-.comm-guard-card p  { font-size:0.9rem; color:var(--text-muted); }
+  <!-- Main community layout -->
+  <div id="comm-app" class="comm-app hidden">
 
-/* ── App Layout ── */
-.comm-app { display:flex; flex-direction:column; min-height:100dvh; }
+    <!-- Top bar -->
+    <header class="comm-header">
+      <a href="/" class="comm-logo">📚 ReadTrack</a>
+      <nav class="comm-nav">
+        <button class="comm-nav-btn active" data-tab="feed">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Feed
+        </button>
+        <button class="comm-nav-btn" data-tab="messages">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Messages
+          <span id="msg-badge" class="comm-badge hidden">0</span>
+        </button>
+        <button class="comm-nav-btn" data-tab="profile">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </button>
+        <button class="comm-nav-btn" data-tab="members">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Members
+        </button>
+      </nav>
+      <div class="comm-header-right">
+        <div class="comm-user-badge" id="comm-user-badge"></div>
+        <a href="/" class="comm-home-btn">← App</a>
+      </div>
+    </header>
 
-/* ── Header ── */
-.comm-header {
-  background:var(--surface); border-bottom:1px solid var(--border);
-  padding:0 20px; height:56px; display:flex; align-items:center; gap:16px;
-  position:sticky; top:0; z-index:100; box-shadow:var(--shadow);
-}
-.comm-logo { font-size:1rem; font-weight:800; color:var(--text); text-decoration:none; white-space:nowrap; }
-.comm-nav  { display:flex; gap:4px; flex:1; justify-content:center; }
-.comm-nav-btn {
-  display:flex; align-items:center; gap:6px; padding:8px 14px;
-  border:none; background:none; color:var(--text-muted);
-  font-size:0.82rem; font-weight:600; cursor:pointer; border-radius:var(--radius-xs);
-  transition:all var(--transition); -webkit-tap-highlight-color:transparent; position:relative;
-}
-.comm-nav-btn svg { width:16px; height:16px; }
-.comm-nav-btn:hover { background:var(--surface-2); color:var(--text); }
-.comm-nav-btn.active { background:var(--primary-light); color:var(--primary); }
-.comm-badge {
-  background:var(--danger); color:#fff; font-size:0.65rem; font-weight:800;
-  padding:1px 5px; border-radius:10px; min-width:16px; text-align:center;
-}
-.comm-header-right { display:flex; align-items:center; gap:10px; margin-left:auto; }
-.comm-user-badge { font-size:0.82rem; font-weight:600; color:var(--text-muted); }
-.comm-home-btn { font-size:0.82rem; color:var(--text-muted); text-decoration:none; white-space:nowrap; }
-.comm-home-btn:hover { color:var(--primary); }
+    <!-- FEED TAB -->
+    <div class="comm-tab active" id="tab-feed">
+      <div class="feed-layout">
+        <main class="feed-main">
+          <!-- Create post -->
+          <div class="post-composer" id="post-composer">
+            <div class="composer-avatar" id="composer-avatar">U</div>
+            <div class="composer-body">
+              <textarea id="post-content" class="composer-input" placeholder="Share your reading progress, thoughts, or ask a question…" rows="3" maxlength="500"></textarea>
+              <div class="composer-actions">
+                <label class="composer-img-btn" for="post-image-input">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  Photo
+                  <input type="file" id="post-image-input" accept="image/*" style="display:none" />
+                </label>
+                <div id="post-img-preview" class="composer-img-preview hidden"></div>
+                <span class="composer-count"><span id="post-char-count">0</span>/500</span>
+                <button id="btn-post" class="btn btn-primary btn-sm">Post</button>
+              </div>
+            </div>
+          </div>
 
-/* ── Tabs ── */
-.comm-tab { display:none; flex:1; }
-.comm-tab.active { display:flex; flex-direction:column; }
+          <!-- Feed -->
+          <div id="feed-list" class="feed-list">
+            <div class="feed-loading">Loading community feed…</div>
+          </div>
+        </main>
 
-/* ── Feed ── */
-.feed-layout { display:flex; gap:20px; padding:20px; max-width:1100px; margin:0 auto; width:100%; }
-.feed-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:16px; }
-.feed-sidebar { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+        <!-- Sidebar -->
+        <aside class="feed-sidebar">
+          <div class="sidebar-card">
+            <h3>📊 Your Stats</h3>
+            <div id="sidebar-stats" class="sidebar-stats"></div>
+          </div>
+          <div class="sidebar-card">
+            <h3>🔥 Top Readers</h3>
+            <div id="sidebar-top" class="sidebar-top"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
 
-/* Post Composer */
-.post-composer {
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:16px; display:flex; gap:12px;
-  box-shadow:var(--shadow);
-}
-.composer-avatar {
-  width:40px; height:40px; border-radius:50%; background:var(--grad-1);
-  color:#fff; display:flex; align-items:center; justify-content:center;
-  font-size:1rem; font-weight:800; flex-shrink:0;
-}
-.composer-body { flex:1; display:flex; flex-direction:column; gap:10px; }
-.composer-input {
-  width:100%; background:var(--surface-2); border:1.5px solid var(--border);
-  color:var(--text); padding:10px 14px; border-radius:var(--radius-sm);
-  font-size:0.92rem; font-family:var(--font); resize:none; outline:none;
-  transition:border-color var(--transition);
-}
-.composer-input:focus { border-color:var(--primary); }
-.composer-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.composer-img-btn {
-  display:flex; align-items:center; gap:6px; padding:6px 12px;
-  background:var(--surface-2); border:1.5px solid var(--border);
-  border-radius:var(--radius-xs); font-size:0.8rem; font-weight:600;
-  color:var(--text-muted); cursor:pointer; transition:all var(--transition);
-}
-.composer-img-btn svg { width:14px; height:14px; }
-.composer-img-btn:hover { border-color:var(--primary); color:var(--primary); }
-.composer-img-preview { max-width:80px; max-height:60px; border-radius:8px; overflow:hidden; }
-.composer-img-preview img { width:100%; height:100%; object-fit:cover; }
-.composer-count { font-size:0.75rem; color:var(--text-muted); margin-left:auto; }
+    <!-- MESSAGES TAB -->
+    <div class="comm-tab" id="tab-messages">
+      <div class="messages-layout">
+        <!-- Conversations list -->
+        <div class="conv-list" id="conv-list">
+          <div class="conv-header">
+            <h2>Messages</h2>
+            <button id="btn-new-message" class="btn btn-primary btn-sm">+ New</button>
+          </div>
+          <div id="conversations" class="conversations">
+            <div class="feed-loading">Loading messages…</div>
+          </div>
+        </div>
 
-/* Post Card */
-.post-card {
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:18px; box-shadow:var(--shadow);
-  display:flex; flex-direction:column; gap:12px;
-}
-.post-header { display:flex; align-items:center; gap:10px; }
-.post-avatar {
-  width:38px; height:38px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-size:0.9rem; font-weight:800; color:#fff; flex-shrink:0;
-  background:var(--grad-1);
-}
-.post-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
-.post-author { font-weight:700; font-size:0.9rem; }
-.post-time   { font-size:0.75rem; color:var(--text-muted); }
-.post-content { font-size:0.92rem; line-height:1.6; color:var(--text); white-space:pre-wrap; word-break:break-word; }
-.post-image { border-radius:var(--radius-sm); overflow:hidden; max-height:300px; }
-.post-image img { width:100%; height:100%; object-fit:cover; display:block; }
-.post-actions { display:flex; gap:8px; }
-.post-action-btn {
-  display:flex; align-items:center; gap:5px; padding:6px 12px;
-  background:var(--surface-2); border:1px solid var(--border);
-  border-radius:var(--radius-xs); font-size:0.8rem; font-weight:600;
-  color:var(--text-muted); cursor:pointer; transition:all var(--transition);
-  -webkit-tap-highlight-color:transparent;
-}
-.post-action-btn:hover { border-color:var(--primary); color:var(--primary); }
-.post-action-btn.liked { background:rgba(239,68,68,0.1); border-color:var(--danger); color:var(--danger); }
-.post-replies { display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:10px; }
-.reply-item { display:flex; gap:8px; align-items:flex-start; }
-.reply-avatar { width:28px; height:28px; border-radius:50%; background:var(--grad-2); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:800; flex-shrink:0; }
-.reply-body { flex:1; background:var(--surface-2); border-radius:var(--radius-xs); padding:8px 12px; }
-.reply-author { font-size:0.78rem; font-weight:700; margin-bottom:2px; }
-.reply-text   { font-size:0.85rem; color:var(--text); }
-.reply-composer { display:flex; gap:8px; margin-top:4px; }
-.reply-input {
-  flex:1; background:var(--surface-2); border:1.5px solid var(--border);
-  color:var(--text); padding:8px 12px; border-radius:var(--radius-xs);
-  font-size:0.85rem; font-family:var(--font); outline:none;
-  transition:border-color var(--transition);
-}
-.reply-input:focus { border-color:var(--primary); }
+        <!-- Chat window -->
+        <div class="chat-window" id="chat-window">
+          <div class="chat-empty">
+            <div class="chat-empty-icon">💬</div>
+            <p>Select a conversation or start a new one</p>
+          </div>
+        </div>
+      </div>
 
-/* Sidebar */
-.sidebar-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); }
-.sidebar-card h3 { font-size:0.88rem; font-weight:700; margin-bottom:12px; }
-.sidebar-stats { display:flex; flex-direction:column; gap:8px; }
-.sidebar-stat { display:flex; justify-content:space-between; font-size:0.82rem; }
-.sidebar-stat-label { color:var(--text-muted); }
-.sidebar-stat-val   { font-weight:700; }
-.sidebar-top { display:flex; flex-direction:column; gap:8px; }
-.sidebar-top-item { display:flex; align-items:center; gap:8px; font-size:0.82rem; }
-.sidebar-top-rank { width:20px; font-weight:800; color:var(--primary); }
-.sidebar-top-name { flex:1; font-weight:600; }
-.sidebar-top-time { color:var(--text-muted); }
+      <!-- New message modal -->
+      <div id="new-msg-modal" class="modal hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>New Message</h3>
+            <button id="btn-close-modal" class="modal-close">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="text" id="msg-search-user" class="t-search" placeholder="Search users by name…" />
+            <div id="msg-user-results" class="msg-user-results"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-.feed-loading { padding:32px; text-align:center; color:var(--text-muted); }
-.feed-empty   { padding:32px; text-align:center; color:var(--text-muted); }
+    <!-- PROFILE TAB -->
+    <div class="comm-tab" id="tab-profile">
+      <div class="profile-layout">
+        <!-- Profile card -->
+        <div class="profile-card" id="profile-card">
+          <div class="profile-cover" id="profile-cover"></div>
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profile-avatar-display">U</div>
+            <label class="profile-avatar-edit" for="avatar-upload">✏️</label>
+            <input type="file" id="avatar-upload" accept="image/*" style="display:none" />
+          </div>
+          <div class="profile-info">
+            <h2 id="profile-name-display">—</h2>
+            <p id="profile-bio-display" class="profile-bio">No bio yet</p>
+            <div class="profile-tags">
+              <span id="profile-role-badge" class="profile-tag">Student</span>
+              <span id="profile-genre-badge" class="profile-tag hidden"></span>
+            </div>
+          </div>
+          <div class="profile-stats-row" id="profile-stats-row"></div>
+        </div>
 
-/* ── Messages ── */
-.messages-layout { display:flex; flex:1; height:calc(100dvh - 56px); }
-.conv-list { width:300px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; background:var(--surface); }
-.conv-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
-.conv-header h2 { font-size:1rem; font-weight:800; }
-.conversations { flex:1; overflow-y:auto; }
-.conv-item { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:background var(--transition); border-bottom:1px solid var(--border); -webkit-tap-highlight-color:transparent; }
-.conv-item:hover { background:var(--surface-2); }
-.conv-item.active { background:var(--primary-light); }
-.conv-avatar { width:40px; height:40px; border-radius:50%; background:var(--grad-1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; flex-shrink:0; }
-.conv-info { flex:1; min-width:0; }
-.conv-name    { font-size:0.88rem; font-weight:700; }
-.conv-preview { font-size:0.75rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.conv-unread  { background:var(--primary); color:#fff; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:10px; flex-shrink:0; }
+        <!-- Edit form -->
+        <div class="profile-edit-card">
+          <h3>Edit Profile</h3>
+          <div class="profile-form">
+            <div class="auth-field">
+              <label>Display Name</label>
+              <input type="text" id="edit-name" placeholder="Your name" />
+            </div>
+            <div class="auth-field">
+              <label>Bio</label>
+              <textarea id="edit-bio" class="edit-bio-input" placeholder="Tell the community about yourself…" rows="3" maxlength="200"></textarea>
+            </div>
+            <div class="auth-field">
+              <label>Favorite Genre</label>
+              <select id="edit-genre" class="select-input">
+                <option value="">Select genre…</option>
+                <option>Fiction</option>
+                <option>Non-Fiction</option>
+                <option>Science Fiction</option>
+                <option>Fantasy</option>
+                <option>Mystery</option>
+                <option>Biography</option>
+                <option>History</option>
+                <option>Self-Help</option>
+                <option>Science</option>
+                <option>Religion</option>
+                <option>Children</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="auth-field">
+              <label>Profile Color</label>
+              <div class="color-picker">
+                <button class="color-btn" data-color="#6366f1" style="background:#6366f1"></button>
+                <button class="color-btn" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+                <button class="color-btn" data-color="#ec4899" style="background:#ec4899"></button>
+                <button class="color-btn" data-color="#ef4444" style="background:#ef4444"></button>
+                <button class="color-btn" data-color="#f59e0b" style="background:#f59e0b"></button>
+                <button class="color-btn" data-color="#22c55e" style="background:#22c55e"></button>
+                <button class="color-btn" data-color="#06b6d4" style="background:#06b6d4"></button>
+                <button class="color-btn" data-color="#0f172a" style="background:#0f172a"></button>
+              </div>
+            </div>
+            <div id="profile-save-msg" class="auth-alert hidden"></div>
+            <button id="btn-save-profile" class="btn btn-primary btn-lg">Save Profile</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-/* Chat window */
-.chat-window { flex:1; display:flex; flex-direction:column; }
-.chat-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--text-muted); }
-.chat-empty-icon { font-size:3rem; }
-.chat-window-header { padding:12px 16px; border-bottom:1px solid var(--border); background:var(--surface); display:flex; align-items:center; gap:10px; }
-.chat-window-name { font-size:0.95rem; font-weight:700; }
-.chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; background:var(--bg); }
-.chat-msg { display:flex; gap:8px; max-width:75%; }
-.chat-msg.sent { align-self:flex-end; flex-direction:row-reverse; }
-.chat-msg-avatar { width:30px; height:30px; border-radius:50%; background:var(--grad-1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800; flex-shrink:0; align-self:flex-end; }
-.chat-bubble { background:var(--surface); border:1px solid var(--border); border-radius:16px; border-bottom-left-radius:4px; padding:10px 14px; }
-.chat-msg.sent .chat-bubble { background:var(--primary); color:#fff; border:none; border-bottom-right-radius:4px; border-bottom-left-radius:16px; }
-.chat-bubble p { font-size:0.88rem; line-height:1.5; }
-.chat-bubble img { max-width:200px; border-radius:8px; margin-top:6px; display:block; }
-.chat-bubble-time { font-size:0.65rem; opacity:0.6; margin-top:3px; }
-.chat-input-area { padding:12px 16px; border-top:1px solid var(--border); background:var(--surface); display:flex; gap:8px; align-items:flex-end; }
-.chat-input { flex:1; background:var(--surface-2); border:1.5px solid var(--border); color:var(--text); padding:10px 14px; border-radius:var(--radius-sm); font-size:0.92rem; font-family:var(--font); outline:none; resize:none; max-height:120px; transition:border-color var(--transition); }
-.chat-input:focus { border-color:var(--primary); }
-.chat-send-btn { background:var(--grad-1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all var(--transition); }
-.chat-send-btn:hover { transform:scale(1.08); }
-.chat-img-btn { background:var(--surface-2); border:1.5px solid var(--border); color:var(--text-muted); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all var(--transition); }
-.chat-img-btn svg { width:16px; height:16px; }
+    <!-- MEMBERS TAB -->
+    <div class="comm-tab" id="tab-members">
+      <div class="members-wrap">
+        <div class="members-header">
+          <input type="text" id="search-members" class="t-search" placeholder="Search members…" />
+        </div>
+        <div id="members-list" class="members-list">
+          <div class="feed-loading">Loading members…</div>
+        </div>
+      </div>
+    </div>
 
-/* Modal */
-.modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; padding:1rem; }
-.modal-card { background:var(--surface); border-radius:var(--radius); padding:24px; width:100%; max-width:420px; box-shadow:var(--shadow-lg); }
-.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-.modal-header h3 { font-size:1.05rem; font-weight:700; }
-.modal-close { background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--text-muted); }
-.modal-body { display:flex; flex-direction:column; gap:12px; }
-.msg-user-results { display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto; }
-.msg-user-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius-xs); cursor:pointer; transition:background var(--transition); }
-.msg-user-item:hover { background:var(--surface-2); }
-.msg-user-avatar { width:36px; height:36px; border-radius:50%; background:var(--grad-1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.88rem; font-weight:800; flex-shrink:0; }
-.msg-user-name { font-size:0.9rem; font-weight:600; }
-.msg-user-role { font-size:0.72rem; color:var(--text-muted); }
+  </div>
 
-/* ── Profile ── */
-.profile-layout { display:flex; gap:20px; padding:20px; max-width:900px; margin:0 auto; width:100%; flex-wrap:wrap; }
-.profile-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; width:100%; max-width:360px; box-shadow:var(--shadow-md); }
-.profile-cover { height:100px; background:var(--grad-1); }
-.profile-avatar-wrap { position:relative; margin:-36px 0 0 20px; display:inline-block; }
-.profile-avatar { width:72px; height:72px; border-radius:50%; border:4px solid var(--surface); background:var(--grad-1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800; overflow:hidden; }
-.profile-avatar img { width:100%; height:100%; object-fit:cover; }
-.profile-avatar-edit { position:absolute; bottom:0; right:0; background:var(--surface); border:2px solid var(--border); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; cursor:pointer; }
-.profile-info { padding:10px 20px 16px; }
-.profile-info h2 { font-size:1.2rem; font-weight:800; margin-bottom:4px; }
-.profile-bio { font-size:0.85rem; color:var(--text-muted); line-height:1.5; margin-bottom:8px; }
-.profile-tags { display:flex; gap:6px; flex-wrap:wrap; }
-.profile-tag { background:var(--primary-light); color:var(--primary); font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px; }
-.profile-stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; border-top:1px solid var(--border); }
-.profile-stat { padding:12px; text-align:center; border-right:1px solid var(--border); }
-.profile-stat:last-child { border-right:none; }
-.profile-stat-num   { font-size:1.1rem; font-weight:800; }
-.profile-stat-label { font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; }
-
-.profile-edit-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; flex:1; min-width:260px; box-shadow:var(--shadow); }
-.profile-edit-card h3 { font-size:1rem; font-weight:700; margin-bottom:16px; }
-.profile-form { display:flex; flex-direction:column; gap:14px; }
-.edit-bio-input { width:100%; background:var(--surface-2); border:1.5px solid var(--border); color:var(--text); padding:10px 14px; border-radius:var(--radius-sm); font-size:0.92rem; font-family:var(--font); resize:vertical; outline:none; transition:border-color var(--transition); }
-.edit-bio-input:focus { border-color:var(--primary); }
-.color-picker { display:flex; gap:8px; flex-wrap:wrap; }
-.color-btn { width:32px; height:32px; border-radius:50%; border:3px solid transparent; cursor:pointer; transition:all var(--transition); }
-.color-btn:hover, .color-btn.selected { border-color:var(--text); transform:scale(1.15); }
-
-/* ── Members ── */
-.members-wrap { padding:20px; max-width:900px; margin:0 auto; width:100%; }
-.members-header { margin-bottom:16px; }
-.members-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
-.member-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; box-shadow:var(--shadow); cursor:pointer; transition:all var(--transition); }
-.member-card:hover { border-color:var(--primary); transform:translateY(-2px); box-shadow:var(--shadow-md); }
-.member-avatar { width:52px; height:52px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:800; overflow:hidden; }
-.member-avatar img { width:100%; height:100%; object-fit:cover; }
-.member-name { font-size:0.9rem; font-weight:700; }
-.member-role { font-size:0.72rem; color:var(--text-muted); }
-.member-stats { font-size:0.75rem; color:var(--text-muted); }
-.member-msg-btn { font-size:0.75rem; color:var(--primary); font-weight:600; background:var(--primary-light); border:none; padding:4px 10px; border-radius:20px; cursor:pointer; }
-
-/* ── Responsive ── */
-@media (max-width:768px) {
-  .feed-layout { flex-direction:column; padding:12px; }
-  .feed-sidebar { width:100%; }
-  .messages-layout { flex-direction:column; }
-  .conv-list { width:100%; height:200px; border-right:none; border-bottom:1px solid var(--border); }
-  .chat-window { min-height:400px; }
-  .profile-layout { flex-direction:column; }
-  .profile-card { max-width:100%; }
-  .comm-nav-btn span { display:none; }
-  .comm-nav { gap:2px; }
-  .members-list { grid-template-columns:1fr 1fr; }
-}
+  <script src="community.js"></script>
+</body>
+</html>
