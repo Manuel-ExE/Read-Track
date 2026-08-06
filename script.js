@@ -389,9 +389,15 @@ document.getElementById('btn-agree')?.addEventListener('click',()=>{
 let cameraStream=null;
 async function requestCamera(){
   try{
-    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    cameraStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false
+    });
     const v=document.getElementById('camera-video');
-    if(v) v.srcObject=cameraStream;
+    if(v){
+      v.srcObject=cameraStream;
+      // Force play on Chrome
+      await v.play().catch(()=>{});
+    }
     return true;
   }catch{return false;}
 }
@@ -915,7 +921,9 @@ document.getElementById('btn-post')?.addEventListener('click',async()=>{
   postImageFile=null;
   const preview=document.getElementById('post-img-preview');
   if(preview){preview.innerHTML='';preview.classList.add('hidden');}
-  btn.disabled=false;btn.textContent='Post';loadFeed();
+  btn.disabled=false;btn.textContent='Post';
+  // Small delay to let Supabase process
+  setTimeout(()=>loadFeed(), 500);
 });
 document.getElementById('post-content')?.addEventListener('input',function(){const c=document.getElementById('post-char-count');if(c)c.textContent=this.value.length;});
 document.getElementById('post-image-input')?.addEventListener('change',e=>{
@@ -983,7 +991,8 @@ async function sendChatMessage(){
   let imageUrl=null;
   if(chatImageFile){const path=`messages/${USER_ID}-${Date.now()}.${chatImageFile.name.split('.').pop()}`;imageUrl=await uploadFile('readtrack-media',path,chatImageFile);chatImageFile=null;}
   await sbPost('messages',{sender_id:USER_ID,receiver_id:currentChatUserId,sender_name:USER_PROFILE?.full_name||'User',content:content||null,image_url:imageUrl});
-  if(input)input.value='';await loadChatMessages();
+  if(input)input.value='';
+  setTimeout(()=>loadChatMessages(), 300);
 }
 
 document.getElementById('btn-new-message')?.addEventListener('click',async()=>{
@@ -1077,9 +1086,22 @@ document.getElementById('btn-save-profile')?.addEventListener('click',async()=>{
 });
 document.getElementById('avatar-upload')?.addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  const path=`avatars/${USER_ID}.${file.name.split('.').pop()}`;
-  const url=await uploadFile('readtrack-media',path,file);
-  if(url){await sbUpdate('profiles',`?id=eq.${USER_ID}`,{avatar_url:url});USER_PROFILE.avatar_url=url;localStorage.setItem('rt-profile',JSON.stringify(USER_PROFILE));loadProfileTab();}
+  // Resize image before upload for better performance
+  const path=`avatars/${USER_ID}-${Date.now()}.jpg`;
+  try{
+    const url=await uploadFile('readtrack-media',path,file);
+    if(url){
+      await sbUpdate('profiles',`?id=eq.${USER_ID}`,{avatar_url:url});
+      USER_PROFILE.avatar_url=url;
+      localStorage.setItem('rt-profile',JSON.stringify(USER_PROFILE));
+      loadProfileTab();
+    }else{
+      alert('Upload failed. Check your Supabase storage bucket is set to public.');
+    }
+  }catch(err){
+    console.error('Avatar upload error:',err);
+    alert('Could not upload photo: '+err.message);
+  }
 });
 
 // ── Teacher Dashboard (inline) ────────────────────────────────
