@@ -8,6 +8,23 @@
   force = true
 
 [[redirects]]
+  from = "/api/teacher-auth"
+  to   = "/.netlify/functions/teacher-auth"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/teacher-data"
+  to   = "/.netlify/functions/teacher-data"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/teacher"
+  to   = "/teacher.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200
