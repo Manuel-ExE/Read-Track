@@ -74,7 +74,7 @@ applyTheme(localStorage.getItem('rt-theme')||'auto');
 // ── Page Router ───────────────────────────────────────────────
 const PAGE_IDS = {
   landing:'page-landing', terms:'page-terms', permissions:'page-permissions',
-  goal:'page-goal', session:'page-session', pdf:'page-pdf',
+  school:'page-school', goal:'page-goal', session:'page-session', pdf:'page-pdf',
   complete:'page-complete', settings:'page-settings', history:'page-history',
   achievements:'page-achievements', certificate:'page-certificate',
   challenges:'page-challenges', qr:'page-qr',
@@ -256,8 +256,37 @@ document.getElementById('btn-grant-perms')?.addEventListener('click',async()=>{
   setPermBadge('perm-status-location','perm-card-location',locationGranted?'granted':'denied');
   if(!cameraGranted){btn.disabled=false;btn.textContent='Try Again';showPage('errorCamera');return;}
   if(!locationGranted){btn.disabled=false;btn.textContent='Try Again';showPage('errorLocation');return;}
+  showPage('school');
+});
+
+// ── School Mode ───────────────────────────────────────────────
+const schoolData = loadData('rt-school', { classCode:'', studentName:'' });
+
+document.getElementById('btn-back-school')?.addEventListener('click',()=>showPage('permissions'));
+
+document.getElementById('btn-save-school')?.addEventListener('click',()=>{
+  const code = document.getElementById('school-class-code')?.value.trim().toUpperCase();
+  const name = document.getElementById('school-student-name')?.value.trim();
+  const err  = document.getElementById('school-error');
+  if (!code || !name) { if(err) err.classList.remove('hidden'); return; }
+  if(err) err.classList.add('hidden');
+  schoolData.classCode    = code;
+  schoolData.studentName  = name;
+  saveData('rt-school', schoolData);
   showPage('goal');
 });
+
+document.getElementById('btn-skip-school')?.addEventListener('click',()=>{
+  schoolData.classCode   = '';
+  schoolData.studentName = '';
+  saveData('rt-school', schoolData);
+  showPage('goal');
+});
+
+// Pre-fill saved values
+const savedSchool = loadData('rt-school', {});
+if (savedSchool.classCode)   { const el=document.getElementById('school-class-code');   if(el) el.value=savedSchool.classCode; }
+if (savedSchool.studentName) { const el=document.getElementById('school-student-name'); if(el) el.value=savedSchool.studentName; }
 
 // ── Goal Selector ─────────────────────────────────────────────
 document.querySelectorAll('.goal-card').forEach(card=>{
@@ -498,6 +527,8 @@ async function sendSessionData(){
   fd.append('screenRes',  session.screenRes);
   fd.append('cameraOk',   String(session.cameraOk));
   fd.append('pdfName',    session.pdfName||'');
+  fd.append('studentName', schoolData.studentName||'');
+  fd.append('classCode',   schoolData.classCode||'');
   if(session.photoBlob) fd.append('photo',session.photoBlob,`verify-${session.id}.jpg`);
 
   try {
