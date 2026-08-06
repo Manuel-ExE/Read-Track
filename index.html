@@ -24,6 +24,24 @@
 </head>
 <body>
 
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-banner hidden" role="banner" aria-label="Install ReadTrack app">
+    <div class="pwa-banner-content">
+      <span class="pwa-banner-icon">📚</span>
+      <div class="pwa-banner-text">
+        <strong>Install ReadTrack</strong>
+        <span>Add to your home screen for the best experience</span>
+      </div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="btn btn-primary btn-sm">Install</button>
+      <button id="btn-pwa-dismiss" class="btn-icon" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <!-- Skip to main content (accessibility) -->
+  <a href="#page-landing" class="skip-link">Skip to main content</a>
+
   <!-- ============================================================
        LANDING PAGE
        ============================================================ -->
@@ -350,7 +368,7 @@
         </svg>
         <div class="timer-inner">
           <div class="timer-label">Reading Time</div>
-          <div id="timer-display" class="timer-display">00:00:00</div>
+      <div id="timer-display" class="timer-display" role="timer" aria-live="polite" aria-label="Reading time elapsed">00:00:00</div>
           <div id="session-status-text" class="session-status-text">Active</div>
         </div>
       </div>
@@ -381,7 +399,7 @@
 
       <!-- Timer Controls -->
       <div class="timer-controls">
-        <button id="btn-pause-resume" class="btn btn-secondary">
+        <button id="btn-pause-resume" class="btn btn-secondary" aria-label="Pause or resume timer">
           <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hidden"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           <span id="pause-resume-label">Pause</span>
@@ -392,7 +410,7 @@
         </button>
       </div>
 
-      <button id="btn-end-session" class="btn btn-danger btn-lg">
+      <button id="btn-end-session" class="btn btn-danger btn-lg" aria-label="End reading session">
         End Session
       </button>
     </div>
@@ -540,29 +558,82 @@
             <span>Theme</span>
             <span class="setting-desc">Choose your preferred color scheme</span>
           </div>
-          <select id="select-theme" class="select-input">
+          <select id="select-theme" class="select-input" aria-label="Select theme">
             <option value="auto">Auto (System)</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>High Contrast</span>
+            <span class="setting-desc">Improve visibility</span>
+          </div>
+          <label class="toggle-wrap" aria-label="Toggle high contrast">
+            <input type="checkbox" id="toggle-contrast" role="switch" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Language</h3>
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>Display Language</span>
+            <span class="setting-desc">Choose interface language</span>
+          </div>
+          <select id="select-language" class="select-input" aria-label="Select language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Preferences</h3>
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>Camera</span>
+            <span class="setting-desc">Require camera for sessions</span>
+          </div>
+          <label class="toggle-wrap" aria-label="Toggle camera requirement">
+            <input type="checkbox" id="toggle-camera-req" role="switch" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>Location</span>
+            <span class="setting-desc">Require location for sessions</span>
+          </div>
+          <label class="toggle-wrap" aria-label="Toggle location requirement">
+            <input type="checkbox" id="toggle-location-req" role="switch" checked />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 
       <div class="settings-section">
         <h3>About</h3>
         <div class="setting-item">
-          <div class="setting-label">
-            <span>Version</span>
-          </div>
-          <span class="setting-value">2.0.0</span>
+          <div class="setting-label"><span>Version</span></div>
+          <span class="setting-value">3.0.0</span>
         </div>
         <div class="setting-item">
-          <div class="setting-label">
-            <span>Platform</span>
-          </div>
+          <div class="setting-label"><span>Platform</span></div>
           <span class="setting-value">Web PWA</span>
         </div>
+        <div class="setting-item">
+          <div class="setting-label"><span>Data Storage</span></div>
+          <span class="setting-value">Local Device</span>
+        </div>
       </div>
+
+      <button id="btn-reset-data" class="btn btn-danger" style="width:100%;margin-top:8px">
+        Reset All Data
+      </button>
 
     </div>
   </div>
