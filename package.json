@@ -1,11 +1,7 @@
 {
   "name": "readtrack",
-  "version": "1.0.0",
-  "description": "ReadTrack reading session website with Netlify serverless backend",
-  "dependencies": {
-    "form-data": "4.0.0",
-    "node-fetch": "2.7.0"
-  },
+  "version": "3.0.0",
+  "description": "ReadTrack reading session website",
   "engines": {
     "node": ">=18.0.0"
   },
