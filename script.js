@@ -869,6 +869,45 @@ function resetAll(){
   document.getElementById('pdf-progress-bar')?.classList.add('hidden');
 }
 
+// ── Auth State ────────────────────────────────────────────────
+function getAuthSession() {
+  try { return JSON.parse(localStorage.getItem('rt-auth')||'null'); } catch { return null; }
+}
+function getAuthProfile() {
+  try { return JSON.parse(localStorage.getItem('rt-profile')||'null'); } catch { return null; }
+}
+
+function initAuthUI() {
+  const session = getAuthSession();
+  const profile = getAuthProfile();
+  const signinBtn = document.getElementById('btn-hero-signin');
+
+  if (session && session.token && session.expiresAt > Date.now() && profile) {
+    // User is logged in — show profile badge
+    if (signinBtn) {
+      signinBtn.innerHTML = `<span class="user-avatar">${(profile.full_name||'U').charAt(0).toUpperCase()}</span> ${profile.full_name||'User'}`;
+      signinBtn.href = '#';
+      signinBtn.addEventListener('click', e => {
+        e.preventDefault();
+        if (confirm('Sign out of ReadTrack?')) {
+          localStorage.removeItem('rt-auth');
+          localStorage.removeItem('rt-profile');
+          window.location.reload();
+        }
+      });
+    }
+    // Pre-fill school data from profile
+    if (profile.class_code) {
+      schoolData.classCode    = profile.class_code;
+      schoolData.studentName  = profile.full_name || '';
+    }
+  } else {
+    if (signinBtn) signinBtn.style.display = 'inline-flex';
+  }
+}
+
+initAuthUI();
+
 // ── Guards & PWA ──────────────────────────────────────────────
 window.addEventListener('beforeunload',e=>{if(currentPage==='session'&&timerRunning){e.preventDefault();e.returnValue='Session is active.';}});
 window.addEventListener('offline',()=>{if(currentPage!=='landing') showPage('errorOffline');});
