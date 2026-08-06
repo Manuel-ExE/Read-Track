@@ -419,7 +419,7 @@
      ============================================================ -->
 <div id="page-community" class="page">
   <div class="comm-page-header">
-    <h2>Community</h2>
+    <h2>📚 ReadTrack Community</h2>
     <div class="comm-tabs">
       <button class="comm-tab-btn active" data-ctab="feed">Feed</button>
       <button class="comm-tab-btn" data-ctab="messages">Messages<span id="msg-badge" class="comm-badge hidden">0</span></button>
@@ -429,26 +429,121 @@
 
   <!-- Feed Tab -->
   <div class="comm-tab-content active" id="ctab-feed">
-    <div class="feed-layout">
-      <main class="feed-main">
-        <div class="post-composer" id="post-composer">
-          <div class="composer-avatar" id="composer-avatar">U</div>
-          <div class="composer-body">
-            <textarea id="post-content" class="composer-input" placeholder="Share your reading progress…" rows="3" maxlength="500"></textarea>
-            <div class="composer-actions">
-              <label class="composer-img-btn" for="post-image-input"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photo<input type="file" id="post-image-input" accept="image/*" style="display:none" /></label>
-              <div id="post-img-preview" class="composer-img-preview hidden"></div>
-              <span class="composer-count"><span id="post-char-count">0</span>/500</span>
-              <button id="btn-post" class="btn btn-primary btn-sm">Post</button>
+    <div class="fb-layout">
+
+      <!-- Left sidebar -->
+      <aside class="fb-left-sidebar">
+        <div class="fb-profile-mini" id="fb-profile-mini">
+          <div class="fb-mini-avatar" id="fb-mini-avatar">U</div>
+          <div class="fb-mini-name" id="fb-mini-name">You</div>
+        </div>
+        <div class="fb-sidebar-card">
+          <h3>📊 Your Stats</h3>
+          <div id="sidebar-stats" class="sidebar-stats"></div>
+        </div>
+        <div class="fb-sidebar-card">
+          <h3>🔥 Top Readers</h3>
+          <div id="sidebar-top" class="sidebar-top"></div>
+        </div>
+      </aside>
+
+      <!-- Main feed -->
+      <main class="fb-feed-main">
+
+        <!-- Story bar -->
+        <div class="fb-stories">
+          <div class="fb-story fb-your-story" id="fb-your-story">
+            <div class="fb-story-avatar" id="fb-story-avatar">U</div>
+            <div class="fb-story-label">Your Story</div>
+          </div>
+          <div class="fb-story fb-story-placeholder">
+            <div class="fb-story-emoji">📖</div>
+            <div class="fb-story-label">Reading</div>
+          </div>
+          <div class="fb-story fb-story-placeholder">
+            <div class="fb-story-emoji">🏆</div>
+            <div class="fb-story-label">Achieve</div>
+          </div>
+          <div class="fb-story fb-story-placeholder">
+            <div class="fb-story-emoji">🔥</div>
+            <div class="fb-story-label">Streaks</div>
+          </div>
+        </div>
+
+        <!-- Post Composer -->
+        <div class="fb-composer">
+          <div class="fb-composer-top">
+            <div class="fb-composer-avatar" id="composer-avatar">U</div>
+            <button class="fb-composer-input" id="btn-open-composer">What are you reading? Share your progress…</button>
+          </div>
+          <div class="fb-composer-actions">
+            <label class="fb-composer-action" for="post-image-input">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Photo
+              <input type="file" id="post-image-input" accept="image/*" style="display:none" />
+            </label>
+            <button class="fb-composer-action" id="btn-share-milestone">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+              Milestone
+            </button>
+            <button class="fb-composer-action" id="btn-share-feeling">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              Feeling
+            </button>
+          </div>
+        </div>
+
+        <!-- Post Composer Modal -->
+        <div id="post-modal" class="fb-post-modal hidden">
+          <div class="fb-post-modal-card">
+            <div class="fb-post-modal-header">
+              <h3>Create Post</h3>
+              <button id="btn-close-post-modal" class="modal-close">✕</button>
+            </div>
+            <div class="fb-post-modal-author">
+              <div class="fb-composer-avatar" id="composer-avatar-2">U</div>
+              <div>
+                <div class="fb-modal-name" id="fb-modal-name">You</div>
+                <div class="fb-modal-privacy">🌍 Public</div>
+              </div>
+            </div>
+            <textarea id="post-content" class="fb-post-textarea" placeholder="What are you reading? Share your progress…" rows="4" maxlength="500"></textarea>
+            <div id="post-img-preview" class="fb-img-preview hidden"></div>
+            <div class="fb-post-modal-actions">
+              <div class="fb-post-modal-add">
+                <span class="fb-add-label">Add to your post</span>
+                <label class="fb-add-btn" for="post-image-input-2" title="Photo">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <input type="file" id="post-image-input-2" accept="image/*" style="display:none" />
+                </label>
+              </div>
+              <button id="btn-post" class="btn btn-primary" style="width:100%;border-radius:8px">Post</button>
             </div>
           </div>
         </div>
-        <div id="feed-list" class="feed-list"><div class="feed-loading">Loading community feed…</div></div>
+
+        <!-- Feed -->
+        <div id="feed-list" class="fb-feed-list">
+          <div class="feed-loading">Loading community feed…</div>
+        </div>
       </main>
-      <aside class="feed-sidebar">
-        <div class="sidebar-card"><h3>📊 Your Stats</h3><div id="sidebar-stats" class="sidebar-stats"></div></div>
-        <div class="sidebar-card"><h3>🔥 Top Readers</h3><div id="sidebar-top" class="sidebar-top"></div></div>
+
+      <!-- Right sidebar -->
+      <aside class="fb-right-sidebar">
+        <div class="fb-sidebar-card">
+          <h3>👥 Members Online</h3>
+          <div id="fb-members-mini" class="fb-members-mini"></div>
+        </div>
+        <div class="fb-sidebar-card">
+          <h3>📚 Reading Now</h3>
+          <div class="fb-reading-now">
+            <div class="fb-reading-item">📖 Chapter goals active</div>
+            <div class="fb-reading-item">🔥 Streak challenges running</div>
+            <div class="fb-reading-item">🏆 Achievements unlocking</div>
+          </div>
+        </div>
       </aside>
+
     </div>
   </div>
 
