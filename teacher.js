@@ -1,4 +1,4 @@
-/* ReadTrack — teacher.js V2 (Charts + PDF Reports) */
+/* ReadTrack — teacher.js V2 (Charts + PDF Reports + Auth) */
 'use strict';
 
 let currentClass = null;
@@ -6,6 +6,27 @@ let allSessions  = [];
 let allStudents  = [];
 let assignments  = [];
 let charts       = {};
+let authToken    = '';
+
+function $(id) { return document.getElementById(id); }
+
+// Get auth token from stored session
+function getToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem('rt-auth')||'null');
+    return (s && s.expiresAt > Date.now()) ? s.token : '';
+  } catch { return ''; }
+}
+
+// Check if teacher is logged in via auth
+function checkAuthLogin() {
+  const profile = JSON.parse(localStorage.getItem('rt-profile')||'null');
+  const session = JSON.parse(localStorage.getItem('rt-auth')||'null');
+  if (profile?.role === 'teacher' && session?.token && session.expiresAt > Date.now()) {
+    return { profile, token: session.token };
+  }
+  return null;
+}
 
 function $(id) { return document.getElementById(id); }
 
@@ -537,8 +558,24 @@ $('btn-logout')?.addEventListener('click',()=>{
 });
 
 // ── Auto-restore ───────────────────────────────────────────────
-const saved=loadLocal('rt-teacher-session',null);
-if(saved){
-  currentClass={class_code:saved.classCode,class_name:saved.className,teacher_name:saved.teacherName};
-  showDashboard();
+// Check auth-based login first (email/password)
+const authLogin = checkAuthLogin();
+if (authLogin) {
+  // Teacher logged in via auth — load their class
+  authToken = authLogin.token;
+  const saved = loadLocal('rt-teacher-session', null);
+  if (saved) {
+    currentClass = { class_code:saved.classCode, class_name:saved.className, teacher_name:saved.teacherName };
+    showDashboard();
+  } else {
+    // Show login to enter class code
+    showPage && $('t-page-login')?.classList.add('active');
+  }
+} else {
+  // Check PIN-based login
+  const saved = loadLocal('rt-teacher-session', null);
+  if (saved) {
+    currentClass = { class_code:saved.classCode, class_name:saved.className, teacher_name:saved.teacherName };
+    showDashboard();
+  }
 }
