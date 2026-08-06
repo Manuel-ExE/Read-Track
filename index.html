@@ -488,9 +488,20 @@
         ⚠️ Could not send report. Data saved locally.
       </div>
 
+      <!-- QR Code preview -->
+      <div id="qr-preview-wrap" class="qr-preview-wrap hidden">
+        <canvas id="qr-preview-canvas"></canvas>
+      </div>
+
       <div class="complete-actions">
         <button id="btn-new-session" class="btn btn-primary btn-lg">
           Start New Session
+        </button>
+        <button id="btn-view-certificate" class="btn btn-secondary btn-lg">
+          🎓 View Certificate
+        </button>
+        <button id="btn-view-qr" class="btn btn-secondary btn-lg">
+          📱 View QR Code
         </button>
         <button id="btn-back-home" class="btn btn-secondary btn-lg">
           Return Home
@@ -511,6 +522,17 @@
     </div>
     <div class="page-body">
       
+      <div class="settings-section">
+        <h3>Explore</h3>
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>Reading Challenges</span>
+            <span class="setting-desc">Join a reading challenge</span>
+          </div>
+          <button id="btn-go-challenges" class="btn btn-secondary btn-sm">View →</button>
+        </div>
+      </div>
+
       <div class="settings-section">
         <h3>Appearance</h3>
         <div class="setting-item">
@@ -775,6 +797,68 @@
       </div>
       <h3 class="section-label">Badges</h3>
       <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CERTIFICATE PAGE
+       ============================================================ -->
+  <div id="page-certificate" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-certificate">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Certificate</h2>
+      <button id="btn-download-cert" class="btn-icon" title="Download">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+    <div class="page-body" style="align-items:center">
+      <canvas id="cert-canvas" class="cert-canvas"></canvas>
+      <p class="cert-hint">Tap the download button to save your certificate</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CHALLENGES PAGE
+       ============================================================ -->
+  <div id="page-challenges" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-challenges">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Reading Challenges</h2>
+    </div>
+    <div class="page-body">
+      <p class="perms-intro">Join a challenge and build your reading habit.</p>
+      <div id="challenges-list" class="challenges-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       QR VERIFICATION PAGE
+       ============================================================ -->
+  <div id="page-qr" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-qr">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Session QR Code</h2>
+      <button id="btn-download-qr" class="btn-icon" title="Download QR">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+    <div class="page-body" style="align-items:center">
+      <div class="qr-wrap">
+        <canvas id="qr-canvas"></canvas>
+      </div>
+      <div class="qr-info">
+        <div class="qr-info-row"><span>Session ID</span><span id="qr-session-id">—</span></div>
+        <div class="qr-info-row"><span>Duration</span><span id="qr-duration">—</span></div>
+        <div class="qr-info-row"><span>Date</span><span id="qr-date">—</span></div>
+        <div class="qr-info-row"><span>Status</span><span class="status-ok">✅ Verified</span></div>
+      </div>
+      <p class="cert-hint">Share or download this QR code as proof of your session</p>
     </div>
   </div>
 
