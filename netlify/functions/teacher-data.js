@@ -1,8 +1,5 @@
-/* ReadTrack — netlify/functions/teacher-data.js
-   Fetches sessions and students for a class from Supabase */
+/* ReadTrack — netlify/functions/teacher-data.js */
 'use strict';
-
-const fetch = require('node-fetch');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
@@ -16,10 +13,17 @@ exports.handler = async function(event) {
   }
 
   const { classCode, type } = event.queryStringParameters || {};
-  if (!classCode || !type) return { statusCode:400, body:JSON.stringify({error:'classCode and type required'}) };
+  if (!classCode || !type) {
+    return { statusCode:400, body:JSON.stringify({error:'classCode and type required'}) };
+  }
 
-  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
-  const code    = encodeURIComponent(classCode.toUpperCase());
+  const headers = {
+    'apikey':        SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type':  'application/json',
+  };
+
+  const code = encodeURIComponent(classCode.toUpperCase());
 
   try {
     let url;
@@ -32,9 +36,15 @@ exports.handler = async function(event) {
     }
 
     const res  = await fetch(url, { headers });
+    if (!res.ok) {
+      const txt = await res.text();
+      return { statusCode:500, body:JSON.stringify({error:'Database error: ' + txt}) };
+    }
+
     const data = await res.json();
-    return { statusCode:200, body:JSON.stringify({ success:true, data }) };
+    return { statusCode:200, body:JSON.stringify({success:true, data}) };
+
   } catch(e) {
-    return { statusCode:500, body:JSON.stringify({error:'Database error: '+e.message}) };
+    return { statusCode:500, body:JSON.stringify({error:'Server error: ' + e.message}) };
   }
 };
