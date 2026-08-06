@@ -226,7 +226,6 @@ a { color: inherit; text-decoration: none; }
 #page-landing {
   background: var(--bg);
   min-height: 100dvh;
-  display: flex !important;
   flex-direction: column;
 }
 
