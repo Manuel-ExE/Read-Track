@@ -1021,3 +1021,91 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.72rem; font-weight: 700; padding: 4px 10px;
   border-radius: 20px; background: rgba(34,197,94,0.12); color: var(--success);
 }
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+/* Skip link */
+.skip-link {
+  position: absolute; top: -100px; left: 16px; z-index: 9999;
+  background: var(--primary); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  font-weight: 700; font-size: 0.9rem; transition: top 0.2s;
+}
+.skip-link:focus { top: 16px; }
+
+/* Focus indicators */
+*:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+body[data-contrast="high"] {
+  --bg:           #000000;
+  --surface:      #111111;
+  --surface-2:    #222222;
+  --border:       #ffffff;
+  --text:         #ffffff;
+  --text-muted:   #cccccc;
+  --primary:      #7c73f5;
+  --shadow:       none;
+  --shadow-md:    none;
+}
+body[data-contrast="high"] .btn-primary { background: #7c73f5; }
+body[data-contrast="high"] .page-header { border-bottom: 2px solid #fff; }
+body[data-contrast="high"] .perm-card,
+body[data-contrast="high"] .status-card,
+body[data-contrast="high"] .goal-card { border-width: 2px; }
+
+/* ============================================================
+   TOGGLE SWITCH
+   ============================================================ */
+.toggle-wrap {
+  display: inline-flex; align-items: center; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+}
+.toggle-wrap input { display: none; }
+.toggle-slider {
+  width: 48px; height: 26px; background: var(--border);
+  border-radius: 13px; position: relative;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+.toggle-slider::after {
+  content: ''; position: absolute;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px;
+  transition: transform var(--transition);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.toggle-wrap input:checked ~ .toggle-slider { background: var(--primary); }
+.toggle-wrap input:checked ~ .toggle-slider::after { transform: translateX(22px); }
+
+/* ============================================================
+   PWA INSTALL BANNER
+   ============================================================ */
+.pwa-banner {
+  position: fixed; bottom: 72px; left: 12px; right: 12px;
+  background: var(--surface); border: 1.5px solid var(--primary);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; box-shadow: var(--shadow-md); z-index: 200;
+  animation: slideUp 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.pwa-banner-content { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.pwa-banner-icon { font-size: 1.8rem; flex-shrink: 0; }
+.pwa-banner-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pwa-banner-text strong { font-size: 0.9rem; font-weight: 700; }
+.pwa-banner-text span   { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pwa-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
