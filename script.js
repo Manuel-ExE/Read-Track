@@ -842,6 +842,193 @@ function resetAll(){
 window.addEventListener('beforeunload',e=>{if(currentPage==='session'&&timerRunning){e.preventDefault();e.returnValue='Session is active.';}});
 window.addEventListener('offline',()=>{if(currentPage!=='landing') showPage('errorOffline');});
 
+// ── PWA Install Prompt ────────────────────────────────────────
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const banner = document.getElementById('pwa-install-banner');
+  const dismissed = localStorage.getItem('rt-pwa-dismissed');
+  if (banner && !dismissed) banner.classList.remove('hidden');
+});
+
+document.getElementById('btn-pwa-install')?.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('pwa-install-banner')?.classList.add('hidden');
+});
+
+document.getElementById('btn-pwa-dismiss')?.addEventListener('click', () => {
+  document.getElementById('pwa-install-banner')?.classList.add('hidden');
+  localStorage.setItem('rt-pwa-dismissed', '1');
+});
+
+// ── Multi-language (i18n) ─────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    'hero.title':       'Transform Your\nReading Habits',
+    'hero.subtitle':    'Track verified reading sessions with GPS, camera verification, and automatic progress reports.',
+    'hero.start':       'Start Reading Now',
+    'hero.learn':       'Learn More',
+    'nav.home':         'Home',
+    'nav.history':      'History',
+    'nav.read':         'Read',
+    'nav.badges':       'Badges',
+    'nav.settings':     'Settings',
+    'terms.title':      'Terms & Privacy Policy',
+    'terms.agree':      'I Agree & Continue',
+    'perms.title':      'Grant Permissions',
+    'perms.grant':      'Grant Permissions',
+    'goal.title':       'Set Reading Goal',
+    'session.active':   'Active',
+    'session.paused':   'Paused',
+    'session.end':      'End Session',
+    'complete.title':   'Session Complete!',
+    'complete.sub':     'Great job! Your reading session has been verified and logged.',
+    'complete.new':     'Start New Session',
+    'complete.home':    'Return Home',
+    'settings.title':   'Settings',
+    'history.title':    'Session History',
+    'achievements.title':'Achievements',
+  },
+  fr: {
+    'hero.title':       'Transformez Vos\nHabitudes de Lecture',
+    'hero.subtitle':    'Suivez vos sessions de lecture vérifiées avec GPS, vérification par caméra et rapports automatiques.',
+    'hero.start':       'Commencer à Lire',
+    'hero.learn':       'En Savoir Plus',
+    'nav.home':         'Accueil',
+    'nav.history':      'Historique',
+    'nav.read':         'Lire',
+    'nav.badges':       'Badges',
+    'nav.settings':     'Paramètres',
+    'terms.title':      'Conditions & Politique',
+    'terms.agree':      'J\'Accepte et Continue',
+    'perms.title':      'Accorder les Permissions',
+    'perms.grant':      'Accorder les Permissions',
+    'goal.title':       'Définir un Objectif',
+    'session.active':   'Active',
+    'session.paused':   'En Pause',
+    'session.end':      'Terminer la Session',
+    'complete.title':   'Session Terminée!',
+    'complete.sub':     'Bravo! Votre session de lecture a été vérifiée et enregistrée.',
+    'complete.new':     'Nouvelle Session',
+    'complete.home':    'Retour à l\'Accueil',
+    'settings.title':   'Paramètres',
+    'history.title':    'Historique',
+    'achievements.title':'Récompenses',
+  },
+  es: {
+    'hero.title':       'Transforma Tus\nHábitos de Lectura',
+    'hero.subtitle':    'Rastrea sesiones de lectura verificadas con GPS, verificación por cámara e informes automáticos.',
+    'hero.start':       'Empezar a Leer',
+    'hero.learn':       'Aprender Más',
+    'nav.home':         'Inicio',
+    'nav.history':      'Historial',
+    'nav.read':         'Leer',
+    'nav.badges':       'Insignias',
+    'nav.settings':     'Ajustes',
+    'terms.title':      'Términos y Privacidad',
+    'terms.agree':      'Acepto y Continúo',
+    'perms.title':      'Conceder Permisos',
+    'perms.grant':      'Conceder Permisos',
+    'goal.title':       'Establecer Meta',
+    'session.active':   'Activa',
+    'session.paused':   'En Pausa',
+    'session.end':      'Terminar Sesión',
+    'complete.title':   '¡Sesión Completada!',
+    'complete.sub':     '¡Excelente! Tu sesión de lectura ha sido verificada y registrada.',
+    'complete.new':     'Nueva Sesión',
+    'complete.home':    'Volver al Inicio',
+    'settings.title':   'Ajustes',
+    'history.title':    'Historial',
+    'achievements.title':'Logros',
+  },
+};
+
+let currentLang = localStorage.getItem('rt-lang') || 'en';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) ||
+         (TRANSLATIONS['en'][key]) || key;
+}
+
+function applyLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('rt-lang', lang);
+  document.documentElement.lang = lang;
+  const sel = document.getElementById('select-language');
+  if (sel) sel.value = lang;
+
+  // Apply translations to key elements
+  const apply = (sel, key, prop='textContent') => {
+    const el = document.querySelector(sel);
+    if (el) el[prop] = t(key);
+  };
+
+  apply('.hero-title',                    'hero.title');
+  apply('.hero-subtitle',                 'hero.subtitle');
+  apply('#btn-hero-start span',           'hero.start');
+  apply('#btn-hero-learn',                'hero.learn');
+  apply('#btn-agree',                     'terms.agree');
+  apply('#btn-grant-perms',               'perms.grant');
+  apply('#btn-end-session',               'session.end');
+  apply('#btn-new-session',               'complete.new');
+  apply('#btn-back-home',                 'complete.home');
+
+  // Page titles
+  const titles = {
+    '#page-terms    .page-header h2':        'terms.title',
+    '#page-permissions .page-header h2':     'perms.title',
+    '#page-goal .page-header h2':            'goal.title',
+    '#page-settings .page-header h2':        'settings.title',
+    '#page-history .page-header h2':         'history.title',
+    '#page-achievements .page-header h2':    'achievements.title',
+  };
+  Object.entries(titles).forEach(([sel, key]) => apply(sel, key));
+
+  // Bottom nav labels
+  const navLabels = document.querySelectorAll('.nav-item span');
+  const navKeys   = ['nav.home','nav.history','nav.read','nav.badges','nav.settings'];
+  navLabels.forEach((el, i) => { if (navKeys[i]) el.textContent = t(navKeys[i]); });
+}
+
+applyLanguage(currentLang);
+
+// ── High Contrast ─────────────────────────────────────────────
+function applyContrast(enabled) {
+  localStorage.setItem('rt-contrast', enabled ? '1' : '0');
+  if (enabled) document.body.setAttribute('data-contrast', 'high');
+  else         document.body.removeAttribute('data-contrast');
+  const toggle = document.getElementById('toggle-contrast');
+  if (toggle) toggle.checked = enabled;
+}
+applyContrast(localStorage.getItem('rt-contrast') === '1');
+
+document.getElementById('toggle-contrast')?.addEventListener('change', function() {
+  applyContrast(this.checked);
+});
+
+// ── Language selector ─────────────────────────────────────────
+document.getElementById('select-language')?.addEventListener('change', e => applyLanguage(e.target.value));
+
+// ── Preference toggles ────────────────────────────────────────
+const prefs = loadData('rt-prefs', { cameraReq: true, locationReq: true });
+
+const toggleCam = document.getElementById('toggle-camera-req');
+const toggleLoc = document.getElementById('toggle-location-req');
+if (toggleCam) { toggleCam.checked = prefs.cameraReq !== false; toggleCam.addEventListener('change', function(){ prefs.cameraReq=this.checked; saveData('rt-prefs',prefs); }); }
+if (toggleLoc) { toggleLoc.checked = prefs.locationReq !== false; toggleLoc.addEventListener('change', function(){ prefs.locationReq=this.checked; saveData('rt-prefs',prefs); }); }
+
+// ── Reset All Data ────────────────────────────────────────────
+document.getElementById('btn-reset-data')?.addEventListener('click', () => {
+  if (!confirm('This will delete all your sessions, streaks, and achievements. Are you sure?')) return;
+  ['rt-history','rt-streaks','rt-achievements','rt-challenges','rt-prefs'].forEach(k => localStorage.removeItem(k));
+  alert('All data has been reset.');
+  showPage('landing');
+});
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
