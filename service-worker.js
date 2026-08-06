@@ -4,7 +4,7 @@
    ============================================================ */
 
 // Change this version string on every deployment to bust the cache
-const CACHE_VERSION = 'readtrack-v' + '2026-08-06-004';
+const CACHE_VERSION = 'readtrack-v' + '2026-08-07-001';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
