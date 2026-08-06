@@ -212,6 +212,30 @@
       </div>
     </footer>
 
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-page="landing">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-page="history">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item nav-start" id="nav-start-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span>Read</span>
+      </button>
+      <button class="nav-item" data-page="achievements">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <span>Badges</span>
+      </button>
+      <button class="nav-item" data-page="settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
   </div>
 
   <!-- ============================================================
@@ -332,6 +356,14 @@
       </div>
 
       <div class="session-id-label" id="session-id-label"></div>
+
+      <!-- Goal Progress -->
+      <div id="goal-progress-section" class="hidden" style="width:100%">
+        <div class="goal-label-text" id="goal-label-text">Goal: 30 min</div>
+        <div class="goal-progress-wrap">
+          <div class="goal-progress-fill" id="goal-progress-fill" style="width:0%"></div>
+        </div>
+      </div>
 
       <!-- Status Cards -->
       <div class="status-grid">
@@ -549,6 +581,200 @@
       <p class="error-message">No internet connection detected. You can read offline, but session verification requires an active connection.</p>
       <button id="btn-retry-offline" class="btn btn-primary btn-lg">Retry Connection</button>
       <button id="btn-error-offline-home" class="btn btn-secondary">Go Home</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GOAL SELECTOR PAGE
+       ============================================================ -->
+  <div id="page-goal" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-goal">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Set Reading Goal</h2>
+    </div>
+    <div class="page-body">
+      <p class="perms-intro">How long do you want to read today?</p>
+
+      <div class="goals-grid">
+        <button class="goal-card" data-minutes="10">
+          <div class="goal-emoji">⚡</div>
+          <div class="goal-time">10 min</div>
+          <div class="goal-label">Quick Read</div>
+        </button>
+        <button class="goal-card" data-minutes="20">
+          <div class="goal-emoji">📖</div>
+          <div class="goal-time">20 min</div>
+          <div class="goal-label">Short Session</div>
+        </button>
+        <button class="goal-card" data-minutes="30">
+          <div class="goal-emoji">🎯</div>
+          <div class="goal-time">30 min</div>
+          <div class="goal-label">Standard</div>
+        </button>
+        <button class="goal-card" data-minutes="45">
+          <div class="goal-emoji">🔥</div>
+          <div class="goal-time">45 min</div>
+          <div class="goal-label">Deep Focus</div>
+        </button>
+        <button class="goal-card" data-minutes="60">
+          <div class="goal-emoji">🏆</div>
+          <div class="goal-time">60 min</div>
+          <div class="goal-label">Power Hour</div>
+        </button>
+        <button class="goal-card goal-custom" data-minutes="custom">
+          <div class="goal-emoji">✏️</div>
+          <div class="goal-time">Custom</div>
+          <div class="goal-label">Set Your Own</div>
+        </button>
+      </div>
+
+      <div id="custom-duration-wrap" class="custom-duration-wrap hidden">
+        <label class="custom-label">Enter duration (minutes)</label>
+        <div class="custom-input-row">
+          <input type="number" id="custom-minutes" class="custom-input" min="1" max="480" placeholder="e.g. 90" />
+          <button id="btn-confirm-custom" class="btn btn-primary">Set Goal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HISTORY PAGE
+       ============================================================ -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-history">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Session History</h2>
+      <button id="btn-clear-history" class="btn-icon" title="Clear History">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      </button>
+    </div>
+    <div class="page-body">
+      <div id="history-empty" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No sessions yet. Complete your first reading session to see it here.</p>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ACHIEVEMENTS PAGE
+       ============================================================ -->
+  <div id="page-achievements" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-achievements">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Achievements</h2>
+    </div>
+    <div class="page-body">
+      <div class="streak-card">
+        <div class="streak-info">
+          <div class="streak-number" id="streak-count">0</div>
+          <div class="streak-label">Day Streak 🔥</div>
+        </div>
+        <div class="streak-stats">
+          <div class="streak-stat">
+            <div class="streak-stat-val" id="streak-longest">0</div>
+            <div class="streak-stat-label">Longest</div>
+          </div>
+          <div class="streak-stat">
+            <div class="streak-stat-val" id="streak-total-sessions">0</div>
+            <div class="streak-stat-label">Sessions</div>
+          </div>
+          <div class="streak-stat">
+            <div class="streak-stat-val" id="streak-total-hours">0h</div>
+            <div class="streak-stat-label">Total Time</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="section-label">Badges</h3>
+      <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GOAL SELECTOR PAGE
+       ============================================================ -->
+  <div id="page-goal" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-goal">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Set Reading Goal</h2>
+    </div>
+    <div class="page-body">
+      <p class="perms-intro">How long do you want to read today?</p>
+      <div class="goals-grid">
+        <button class="goal-card" data-minutes="10"><div class="goal-emoji">⚡</div><div class="goal-time">10 min</div><div class="goal-label">Quick Read</div></button>
+        <button class="goal-card" data-minutes="20"><div class="goal-emoji">📖</div><div class="goal-time">20 min</div><div class="goal-label">Short Session</div></button>
+        <button class="goal-card" data-minutes="30"><div class="goal-emoji">🎯</div><div class="goal-time">30 min</div><div class="goal-label">Standard</div></button>
+        <button class="goal-card" data-minutes="45"><div class="goal-emoji">🔥</div><div class="goal-time">45 min</div><div class="goal-label">Deep Focus</div></button>
+        <button class="goal-card" data-minutes="60"><div class="goal-emoji">🏆</div><div class="goal-time">60 min</div><div class="goal-label">Power Hour</div></button>
+        <button class="goal-card goal-custom" data-minutes="custom"><div class="goal-emoji">✏️</div><div class="goal-time">Custom</div><div class="goal-label">Set Your Own</div></button>
+      </div>
+      <div id="custom-duration-wrap" class="custom-duration-wrap hidden">
+        <label class="custom-label">Enter duration (minutes)</label>
+        <div class="custom-input-row">
+          <input type="number" id="custom-minutes" class="custom-input" min="1" max="480" placeholder="e.g. 90" />
+          <button id="btn-confirm-custom" class="btn btn-primary">Set Goal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HISTORY PAGE
+       ============================================================ -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-history">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Session History</h2>
+      <button id="btn-clear-history" class="btn-icon" title="Clear History">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>
+    <div class="page-body">
+      <div id="history-empty" class="empty-state hidden">
+        <div class="empty-icon">📭</div>
+        <p>No sessions yet. Complete your first reading session to see it here.</p>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ACHIEVEMENTS PAGE
+       ============================================================ -->
+  <div id="page-achievements" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-achievements">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>Achievements</h2>
+    </div>
+    <div class="page-body">
+      <div class="streak-card">
+        <div class="streak-info">
+          <div class="streak-number" id="streak-count">0</div>
+          <div class="streak-label">Day Streak 🔥</div>
+        </div>
+        <div class="streak-stats">
+          <div class="streak-stat"><div class="streak-stat-val" id="streak-longest">0</div><div class="streak-stat-label">Longest</div></div>
+          <div class="streak-stat"><div class="streak-stat-val" id="streak-total-sessions">0</div><div class="streak-stat-label">Sessions</div></div>
+          <div class="streak-stat"><div class="streak-stat-val" id="streak-total-hours">0h</div><div class="streak-stat-label">Total Time</div></div>
+        </div>
+      </div>
+      <h3 class="section-label">Badges</h3>
+      <div class="achievements-grid" id="achievements-grid"></div>
     </div>
   </div>
 
