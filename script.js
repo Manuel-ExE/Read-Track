@@ -199,26 +199,27 @@ function capturePhoto() {
     if(!cameraStream){resolve(null);return;}
     const v=document.getElementById('camera-video');
     const c=document.getElementById('camera-canvas');
+    let attempts=0;
 
     function doCapture(){
+      attempts++;
       const t=cameraStream.getVideoTracks()[0].getSettings();
       c.width=t.width||v.videoWidth||640;
       c.height=t.height||v.videoHeight||480;
-
-      // Check if we have a real frame (not black)
       const ctx=c.getContext('2d');
       ctx.drawImage(v,0,0,c.width,c.height);
 
-      // Sample center pixel to check if frame is black
+      // Check if frame is black — sample center pixel
       const pixel=ctx.getImageData(Math.floor(c.width/2),Math.floor(c.height/2),1,1).data;
       const brightness=pixel[0]+pixel[1]+pixel[2];
 
-      if(brightness < 10) {
-        // Frame is still black — wait more and retry
-        setTimeout(doCapture, 1000);
+      // If black and haven't tried 5 times yet — retry
+      if(brightness < 10 && attempts < 5){
+        setTimeout(doCapture, 800);
         return;
       }
 
+      // Take the photo regardless after 5 attempts
       c.toBlob(blob=>{
         if(!blob){resolve(null);return;}
         session.photoBlob=blob;
@@ -226,11 +227,10 @@ function capturePhoto() {
       },'image/jpeg',0.85);
     }
 
-    // Wait for video to be fully playing
     if(v.readyState>=2&&v.videoWidth>0){
-      setTimeout(doCapture, 2000);
+      setTimeout(doCapture,1500);
     } else {
-      v.addEventListener('canplay',()=>setTimeout(doCapture,2000),{once:true});
+      v.addEventListener('canplay',()=>setTimeout(doCapture,1500),{once:true});
     }
   });
 }
