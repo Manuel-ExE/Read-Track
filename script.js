@@ -433,7 +433,7 @@ async function sendSessionData() {
   }
 
   try {
-    const res = await fetch('/api/session', {
+    const res = await fetch('/.netlify/functions/session', {
       method: 'POST',
       body: formData,
     });
