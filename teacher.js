@@ -44,14 +44,14 @@ $('btn-login')?.addEventListener('click', async () => {
 
   try {
     const data = await apiCall(`/.netlify/functions/teacher-auth`, 'POST', { classCode:code, pin });
-    if (!data.success) throw new Error('Invalid credentials');
+    if (!data.success) throw new Error(data.error || 'Invalid credentials');
 
     currentClass = data.class;
     saveLocal('rt-teacher-session', { classCode:code, className:data.class.class_name, teacherName:data.class.teacher_name });
 
     showDashboard();
   } catch (e) {
-    if(errEl){ errEl.textContent='Invalid class code or PIN.'; errEl.classList.remove('hidden'); }
+    if(errEl){ errEl.textContent='Error: ' + e.message; errEl.classList.remove('hidden'); }
     btn.disabled=false; btn.textContent='Sign In';
   }
 });
