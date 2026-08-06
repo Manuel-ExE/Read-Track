@@ -5,6 +5,7 @@
   from = "/api/session"
   to   = "/.netlify/functions/session"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
