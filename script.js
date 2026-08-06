@@ -915,15 +915,24 @@ document.getElementById('btn-post')?.addEventListener('click',async()=>{
   const btn=document.getElementById('btn-post');btn.disabled=true;btn.textContent='Posting…';
   let imageUrl=null;
   if(postImageFile){const path=`posts/${USER_ID}-${Date.now()}.${postImageFile.name.split('.').pop()}`;imageUrl=await uploadFile('readtrack-media',path,postImageFile);}
-  await sbPost('posts',{user_id:USER_ID,author_name:USER_PROFILE?.full_name||'User',author_avatar:USER_PROFILE?.avatar_url||null,content:content||null,image_url:imageUrl});
+  const result = await sbPost('posts',{user_id:USER_ID,author_name:USER_PROFILE?.full_name||'User',author_avatar:USER_PROFILE?.avatar_url||null,content:content||null,image_url:imageUrl});
   if(document.getElementById('post-content'))document.getElementById('post-content').value='';
   const cc=document.getElementById('post-char-count');if(cc)cc.textContent='0';
   postImageFile=null;
   const preview=document.getElementById('post-img-preview');
   if(preview){preview.innerHTML='';preview.classList.add('hidden');}
   btn.disabled=false;btn.textContent='Post';
-  // Small delay to let Supabase process
-  setTimeout(()=>loadFeed(), 500);
+  // Immediately add post to feed without waiting for server
+  if(Array.isArray(result)&&result[0]){
+    const list=document.getElementById('feed-list');
+    if(list){
+      const existing=list.innerHTML.includes('feed-loading')||list.innerHTML.includes('feed-empty')?'':list.innerHTML;
+      list.innerHTML=renderPost(result[0])+existing;
+      bindPostActions();
+    }
+  } else {
+    setTimeout(()=>loadFeed(),800);
+  }
 });
 document.getElementById('post-content')?.addEventListener('input',function(){const c=document.getElementById('post-char-count');if(c)c.textContent=this.value.length;});
 document.getElementById('post-image-input')?.addEventListener('change',e=>{
@@ -988,11 +997,21 @@ async function loadChatMessages(){
 async function sendChatMessage(){
   const input=document.getElementById('chat-input');const content=input?.value.trim();
   if(!content&&!chatImageFile)return;
+  // Clear input immediately for better UX
+  if(input)input.value='';
   let imageUrl=null;
   if(chatImageFile){const path=`messages/${USER_ID}-${Date.now()}.${chatImageFile.name.split('.').pop()}`;imageUrl=await uploadFile('readtrack-media',path,chatImageFile);chatImageFile=null;}
-  await sbPost('messages',{sender_id:USER_ID,receiver_id:currentChatUserId,sender_name:USER_PROFILE?.full_name||'User',content:content||null,image_url:imageUrl});
-  if(input)input.value='';
-  setTimeout(()=>loadChatMessages(), 300);
+  // Add message to UI immediately (optimistic update)
+  const msgEl=document.getElementById('chat-messages');
+  if(msgEl){
+    const tempDiv=document.createElement('div');
+    tempDiv.className='chat-msg sent';
+    tempDiv.innerHTML=`${avatarEl(USER_PROFILE?.full_name||'Me',USER_PROFILE?.avatar_url||null,USER_PROFILE?.theme_color||null,30)}<div class="chat-bubble"><p>${escHtml(content||'')}</p>${imageUrl?`<img src="${imageUrl}" loading="lazy" />`:''}<div class="chat-bubble-time">just now</div></div>`;
+    msgEl.appendChild(tempDiv);
+    msgEl.scrollTop=msgEl.scrollHeight;
+  }
+  // Save to Supabase in background
+  sbPost('messages',{sender_id:USER_ID,receiver_id:currentChatUserId,sender_name:USER_PROFILE?.full_name||'User',content:content||null,image_url:imageUrl}).catch(e=>console.error('Message save error:',e));
 }
 
 document.getElementById('btn-new-message')?.addEventListener('click',async()=>{
@@ -1086,7 +1105,6 @@ document.getElementById('btn-save-profile')?.addEventListener('click',async()=>{
 });
 document.getElementById('avatar-upload')?.addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  // Resize image before upload for better performance
   const path=`avatars/${USER_ID}-${Date.now()}.jpg`;
   try{
     const url=await uploadFile('readtrack-media',path,file);
@@ -1094,9 +1112,14 @@ document.getElementById('avatar-upload')?.addEventListener('change',async e=>{
       await sbUpdate('profiles',`?id=eq.${USER_ID}`,{avatar_url:url});
       USER_PROFILE.avatar_url=url;
       localStorage.setItem('rt-profile',JSON.stringify(USER_PROFILE));
-      loadProfileTab();
+      // Update avatar immediately in UI
+      const avatarD=document.getElementById('profile-avatar-display');
+      if(avatarD){avatarD.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover"/>`;}
+      const compAvatar=document.getElementById('composer-avatar');
+      if(compAvatar){compAvatar.innerHTML=`<img src="${url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>`;}
+      alert('✅ Profile picture updated!');
     }else{
-      alert('Upload failed. Check your Supabase storage bucket is set to public.');
+      alert('Upload failed. Please try again.');
     }
   }catch(err){
     console.error('Avatar upload error:',err);
