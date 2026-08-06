@@ -31,6 +31,11 @@
   status = 200
 
 [[redirects]]
+  from = "/community"
+  to   = "/community.html"
+  status = 200
+
+[[redirects]]
   from = "/teacher"
   to   = "/teacher.html"
   status = 200
