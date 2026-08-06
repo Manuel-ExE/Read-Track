@@ -423,7 +423,7 @@
     <div class="comm-tabs">
       <button class="comm-tab-btn active" data-ctab="feed">Feed</button>
       <button class="comm-tab-btn" data-ctab="messages">Messages<span id="msg-badge" class="comm-badge hidden">0</span></button>
-      <button class="comm-tab-btn" data-ctab="members">Members</button>
+      <button class="comm-tab-btn" data-ctab="studypals">StudyPals<span id="pals-badge" class="comm-badge hidden">0</span></button>
     </div>
   </div>
 
@@ -449,26 +449,6 @@
 
       <!-- Main feed -->
       <main class="fb-feed-main">
-
-        <!-- Story bar -->
-        <div class="fb-stories">
-          <div class="fb-story fb-your-story" id="fb-your-story">
-            <div class="fb-story-avatar" id="fb-story-avatar">U</div>
-            <div class="fb-story-label">Your Story</div>
-          </div>
-          <div class="fb-story fb-story-placeholder">
-            <div class="fb-story-emoji">📖</div>
-            <div class="fb-story-label">Reading</div>
-          </div>
-          <div class="fb-story fb-story-placeholder">
-            <div class="fb-story-emoji">🏆</div>
-            <div class="fb-story-label">Achieve</div>
-          </div>
-          <div class="fb-story fb-story-placeholder">
-            <div class="fb-story-emoji">🔥</div>
-            <div class="fb-story-label">Streaks</div>
-          </div>
-        </div>
 
         <!-- Post Composer -->
         <div class="fb-composer">
@@ -531,8 +511,9 @@
       <!-- Right sidebar -->
       <aside class="fb-right-sidebar">
         <div class="fb-sidebar-card">
-          <h3>👥 Members Online</h3>
+          <h3>👥 StudyPals</h3>
           <div id="fb-members-mini" class="fb-members-mini"></div>
+          <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px" data-ctab-switch="studypals">See All StudyPals →</button>
         </div>
         <div class="fb-sidebar-card">
           <h3>📚 Reading Now</h3>
@@ -566,11 +547,22 @@
     </div>
   </div>
 
-  <!-- Members Tab -->
-  <div class="comm-tab-content" id="ctab-members">
-    <div class="members-wrap">
-      <div class="members-header"><input type="text" id="search-members" class="t-search" placeholder="Search members…" /></div>
-      <div id="members-list" class="members-list"><div class="feed-loading">Loading members…</div></div>
+  <!-- StudyPals Tab -->
+  <div class="comm-tab-content" id="ctab-studypals">
+    <div class="studypals-wrap">
+      <!-- Friend Requests Banner -->
+      <div id="friend-requests-section" class="friend-requests-section hidden">
+        <h3 class="sp-section-title">📬 Friend Requests</h3>
+        <div id="friend-requests-list" class="friend-requests-list"></div>
+      </div>
+      <!-- All Users -->
+      <h3 class="sp-section-title">👥 Discover StudyPals</h3>
+      <div class="sp-search-wrap">
+        <input type="text" id="search-studypals" class="t-search" placeholder="Search by name…" />
+      </div>
+      <div id="studypals-list" class="studypals-list">
+        <div class="feed-loading">Loading…</div>
+      </div>
     </div>
   </div>
 </div>
