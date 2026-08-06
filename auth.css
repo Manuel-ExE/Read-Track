@@ -1,0 +1,120 @@
+/* ReadTrack — auth.css */
+
+body {
+  background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  min-height: 100dvh;
+}
+
+.auth-page { display:none; min-height:100dvh; }
+.auth-page.active { display:flex; }
+
+.auth-wrap {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:2rem 1.25rem; min-height:100dvh;
+}
+
+.auth-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:2.5rem 2rem;
+  width:100%; max-width:420px; box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column; align-items:center;
+  gap:1rem; text-align:center; position:relative;
+  animation: fadeSlideUp 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+.auth-back {
+  position:absolute; top:20px; left:20px;
+  background:var(--surface-2); border:1.5px solid var(--border);
+  color:var(--text); width:36px; height:36px; border-radius:10px;
+  font-size:1rem; cursor:pointer; display:flex;
+  align-items:center; justify-content:center;
+  transition:all var(--transition);
+}
+.auth-back:hover { background:var(--primary-light); border-color:var(--primary); }
+
+.auth-logo  { font-size:3rem; }
+.auth-title { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; }
+.auth-sub   { font-size:0.88rem; color:var(--text-muted); margin-top:-4px; }
+
+/* Role Grid */
+.role-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px; width:100%; margin-top:8px;
+}
+.role-card {
+  background:var(--surface-2); border:2px solid var(--border);
+  border-radius:var(--radius); padding:20px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  cursor:pointer; transition:all var(--transition);
+  -webkit-tap-highlight-color:transparent;
+}
+.role-card:hover {
+  border-color:var(--primary); background:var(--primary-light);
+  transform:translateY(-3px); box-shadow:var(--shadow-md);
+}
+.role-icon { font-size:2.2rem; }
+.role-name { font-size:1rem; font-weight:700; }
+.role-desc { font-size:0.72rem; color:var(--text-muted); line-height:1.4; }
+
+.auth-skip {
+  font-size:0.82rem; color:var(--text-muted);
+  text-decoration:underline; text-underline-offset:3px;
+  transition:color var(--transition); margin-top:4px;
+}
+.auth-skip:hover { color:var(--primary); }
+
+/* Form */
+.auth-form { width:100%; display:flex; flex-direction:column; gap:14px; }
+.auth-field { display:flex; flex-direction:column; gap:6px; text-align:left; }
+.auth-field label { font-size:0.82rem; font-weight:600; color:var(--text-muted); }
+.auth-field input {
+  background:var(--surface-2); border:1.5px solid var(--border);
+  color:var(--text); padding:12px 16px; border-radius:var(--radius-sm);
+  font-size:1rem; font-family:var(--font); outline:none; width:100%;
+  transition:border-color var(--transition);
+}
+.auth-field input:focus { border-color:var(--primary); }
+.auth-field-hint { font-size:0.75rem; color:var(--text-muted); }
+
+/* Alerts */
+.auth-alert {
+  padding:12px 16px; border-radius:var(--radius-sm);
+  font-size:0.88rem; text-align:left; width:100%;
+}
+.auth-alert-error   { background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); }
+.auth-alert-success { background:rgba(34,197,94,0.1);  color:var(--success); border:1px solid rgba(34,197,94,0.2); }
+
+/* Divider */
+.auth-divider {
+  width:100%; display:flex; align-items:center; gap:12px;
+  color:var(--text-muted); font-size:0.8rem;
+}
+.auth-divider::before, .auth-divider::after {
+  content:''; flex:1; height:1px; background:var(--border);
+}
+
+/* Links */
+.auth-links { display:flex; flex-direction:column; gap:8px; align-items:center; }
+.auth-link-btn {
+  background:none; border:none; color:var(--text-muted);
+  font-size:0.85rem; cursor:pointer; transition:color var(--transition);
+  -webkit-tap-highlight-color:transparent;
+}
+.auth-link-btn:hover { color:var(--primary); }
+.auth-link-btn strong { color:var(--primary); }
+
+/* Profile badge (shown on main app when logged in) */
+.user-badge {
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:20px; padding:6px 14px 6px 8px;
+  font-size:0.82rem; font-weight:600;
+  cursor:pointer; transition:all var(--transition);
+}
+.user-badge:hover { border-color:var(--primary); }
+.user-avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--grad-1); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.75rem; font-weight:800;
+}
