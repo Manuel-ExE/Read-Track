@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#6366f1" />
+  <title>ReadTrack — Sign In</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+  <!-- ── ROLE SELECTION ── -->
+  <div id="auth-page-role" class="auth-page active">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-logo">📚</div>
+        <h1 class="auth-title">Welcome to ReadTrack</h1>
+        <p class="auth-sub">Choose how you want to continue</p>
+        <div class="role-grid">
+          <button class="role-card" data-role="student">
+            <div class="role-icon">🎓</div>
+            <div class="role-name">Student</div>
+            <div class="role-desc">Track your reading sessions and achievements</div>
+          </button>
+          <button class="role-card" data-role="teacher">
+            <div class="role-icon">👩‍🏫</div>
+            <div class="role-name">Teacher</div>
+            <div class="role-desc">Monitor your class and manage assignments</div>
+          </button>
+        </div>
+        <a href="/" class="auth-skip">Continue without account →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LOGIN ── -->
+  <div id="auth-page-login" class="auth-page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <button class="auth-back" id="btn-login-back">←</button>
+        <div class="auth-logo">📚</div>
+        <h1 class="auth-title" id="login-title">Student Login</h1>
+        <p class="auth-sub">Sign in to your ReadTrack account</p>
+
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" />
+          </div>
+          <div id="login-error" class="auth-alert auth-alert-error hidden"></div>
+          <button id="btn-login" class="btn btn-primary btn-lg">Sign In</button>
+        </div>
+
+        <div class="auth-divider"><span>or</span></div>
+
+        <div class="auth-links">
+          <button id="btn-go-signup" class="auth-link-btn">Don't have an account? <strong>Sign Up</strong></button>
+          <button id="btn-forgot-pw" class="auth-link-btn">Forgot password?</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SIGNUP ── -->
+  <div id="auth-page-signup" class="auth-page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <button class="auth-back" id="btn-signup-back">←</button>
+        <div class="auth-logo">📚</div>
+        <h1 class="auth-title" id="signup-title">Create Student Account</h1>
+        <p class="auth-sub">Join ReadTrack today</p>
+
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Full Name</label>
+            <input type="text" id="signup-name" placeholder="Your full name" autocomplete="name" />
+          </div>
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="auth-field" id="signup-class-field">
+            <label>Class Code</label>
+            <input type="text" id="signup-class-code" placeholder="e.g. CLASS001" autocomplete="off" autocapitalize="characters" />
+            <span class="auth-field-hint">Ask your teacher for the class code</span>
+          </div>
+          <div class="auth-field">
+            <label>Password</label>
+            <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" />
+          </div>
+          <div class="auth-field">
+            <label>Confirm Password</label>
+            <input type="password" id="signup-confirm" placeholder="Repeat your password" autocomplete="new-password" />
+          </div>
+          <div id="signup-error" class="auth-alert auth-alert-error hidden"></div>
+          <div id="signup-success" class="auth-alert auth-alert-success hidden">
+            ✅ Account created! Check your email to verify, then sign in.
+          </div>
+          <button id="btn-signup" class="btn btn-primary btn-lg">Create Account</button>
+        </div>
+
+        <div class="auth-links">
+          <button id="btn-go-login" class="auth-link-btn">Already have an account? <strong>Sign In</strong></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FORGOT PASSWORD ── -->
+  <div id="auth-page-forgot" class="auth-page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <button class="auth-back" id="btn-forgot-back">←</button>
+        <div class="auth-logo">🔑</div>
+        <h1 class="auth-title">Reset Password</h1>
+        <p class="auth-sub">Enter your email to receive a reset link</p>
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div id="forgot-error"   class="auth-alert auth-alert-error   hidden"></div>
+          <div id="forgot-success" class="auth-alert auth-alert-success hidden">
+            ✅ Reset link sent! Check your email.
+          </div>
+          <button id="btn-reset-pw" class="btn btn-primary btn-lg">Send Reset Link</button>
+        </div>
+        <div class="auth-links">
+          <button id="btn-back-to-login" class="auth-link-btn">← Back to Sign In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>
