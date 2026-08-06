@@ -210,8 +210,8 @@ function capturePhoto() {
         resolve(blob);
       },'image/jpeg',0.82);
     }
-    if(v.readyState>=2&&v.videoWidth>0) setTimeout(doCapture,800);
-    else v.addEventListener('canplay',()=>setTimeout(doCapture,800),{once:true});
+    if(v.readyState>=2&&v.videoWidth>0) setTimeout(doCapture,2000);
+    else v.addEventListener('canplay',()=>setTimeout(doCapture,2000),{once:true});
   });
 }
 function stopCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}}
