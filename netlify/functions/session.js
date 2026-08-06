@@ -154,7 +154,52 @@ async function sendPhoto(photoBuffer, filename, caption) {
   return json;
 }
 
-// ── Netlify Handler ───────────────────────────────────────────
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+
+// ── Save to Supabase ──────────────────────────────────────────
+async function saveToSupabase(data) {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal',
+  };
+
+  // Register student if not exists
+  if (data.studentName && data.classCode) {
+    await fetch(`${SUPABASE_URL}/rest/v1/students`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
+      body: JSON.stringify({ name: data.studentName, class_code: data.classCode }),
+    }).catch(() => {});
+  }
+
+  // Save session
+  await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      session_id:   data.sessionId,
+      student_name: data.studentName || 'Anonymous',
+      class_code:   data.classCode   || 'NONE',
+      start_time:   data.startTime   || null,
+      end_time:     data.endTime     || null,
+      duration_ms:  data.durationMs  ? parseInt(data.durationMs) : null,
+      duration_text:data.duration    || null,
+      latitude:     data.latitude    || null,
+      longitude:    data.longitude   || null,
+      accuracy:     data.accuracy    || null,
+      browser:      data.browser     || null,
+      os:           data.os          || null,
+      device:       data.device      || null,
+      screen_res:   data.screenRes   || null,
+      camera_ok:    data.cameraOk === 'true' || data.cameraOk === true,
+      pdf_name:     data.pdfName     || null,
+    }),
+  });
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed.' }) };
@@ -174,6 +219,7 @@ exports.handler = async function (event) {
       startTime:  str(fields.startTime, 50),
       endTime:    str(fields.endTime,   50),
       duration:   str(fields.duration,  30),
+      durationMs: str(fields.durationMs,20),
       latitude:   flt(fields.latitude),
       longitude:  flt(fields.longitude),
       accuracy:   flt(fields.accuracy),
@@ -183,6 +229,8 @@ exports.handler = async function (event) {
       screenRes:  str(fields.screenRes, 20),
       cameraOk:   fields.cameraOk,
       pdfName:    str(fields.pdfName,  200),
+      studentName:str(fields.studentName, 100),
+      classCode:  str(fields.classCode,    50),
     };
 
     const message = buildMessage(data);
@@ -193,7 +241,12 @@ exports.handler = async function (event) {
       await sendMessage(message);
     }
 
-    return { statusCode: 200, body: JSON.stringify({ success: true, sessionId }) };
+    // Save to Supabase if class code provided
+    if (data.classCode && SUPABASE_URL && SUPABASE_KEY) {
+      await saveToSupabase(data).catch(e => console.error('Supabase error:', e.message));
+    }
+
+    return { statusCode:200, body:JSON.stringify({success:true, sessionId}) };
 
   } catch (err) {
     console.error('[Session Function]', err.message);
