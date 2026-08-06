@@ -678,12 +678,44 @@
   </div>
 
   <!-- ============================================================
+       SCHOOL MODE PAGE
+       ============================================================ -->
+  <div id="page-school" class="page">
+    <div class="page-header">
+      <button class="btn-back" id="btn-back-school">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2>School Mode</h2>
+    </div>
+    <div class="page-body">
+      <div class="school-intro">
+        <div class="school-icon">🏫</div>
+        <p>Enter your class code and name to link sessions to your class.</p>
+      </div>
+      <div class="content-card">
+        <div class="t-field">
+          <label for="school-class-code">Class Code</label>
+          <input type="text" id="school-class-code" placeholder="e.g. CLASS001" autocomplete="off" autocapitalize="characters" />
+        </div>
+        <div class="t-field" style="margin-top:14px">
+          <label for="school-student-name">Your Name</label>
+          <input type="text" id="school-student-name" placeholder="Enter your full name" autocomplete="name" />
+        </div>
+        <div id="school-error" class="alert alert-error hidden" style="margin-top:12px">
+          Please enter both your class code and name.
+        </div>
+      </div>
+      <button id="btn-save-school" class="btn btn-primary btn-lg">Save &amp; Continue</button>
+      <button id="btn-skip-school" class="btn btn-secondary btn-lg">Skip (Personal Mode)</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
        GOAL SELECTOR PAGE
        ============================================================ -->
   <div id="page-goal" class="page">
     <div class="page-header">
-      <button class="btn-back" id="btn-back-goal">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      <button class="btn-back" id="btn-back-goal">        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <h2>Set Reading Goal</h2>
     </div>
