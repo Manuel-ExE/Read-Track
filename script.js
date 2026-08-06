@@ -1,752 +1,444 @@
-/* ============================================================
-   ReadTrack V2 — script.js
-   Camera · Geolocation · Timer · PDF.js · PWA · Settings
-   ============================================================ */
+/* ReadTrack V2 — script.js */
 'use strict';
 
-// ── PDF.js worker ──────────────────────────────────────────
+// PDF.js worker
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-// ── Inject SVG gradient for circular timer ─────────────────
+// SVG gradient for circular timer
 document.body.insertAdjacentHTML('afterbegin', `
-  <svg class="svg-defs" aria-hidden="true">
-    <defs>
-      <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"   stop-color="#6366f1"/>
-        <stop offset="100%" stop-color="#8b5cf6"/>
-      </linearGradient>
-    </defs>
-  </svg>
-`);
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+</svg>`);
 
-// ============================================================
-// UTILITIES
-// ============================================================
+// ── Utilities ────────────────────────────────────────────────
 function generateSessionId() {
-  const ts   = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
-  return `RS-${ts}-${rand}`;
+  return 'RS-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
 }
-
 function formatDuration(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+  const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return [h,m,sec].map(v => String(v).padStart(2,'0')).join(':');
 }
-
-function formatDateTime(date) {
-  return date.toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
+function formatDateTime(d) {
+  return d.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
-
-function getBrowserName() {
-  const ua = navigator.userAgent;
-  if (/Edg\//.test(ua))        return 'Microsoft Edge';
-  if (/OPR\/|Opera/.test(ua))  return 'Opera';
-  if (/Chrome\//.test(ua))     return 'Google Chrome';
-  if (/Firefox\//.test(ua))    return 'Mozilla Firefox';
-  if (/Safari\//.test(ua))     return 'Apple Safari';
-  return 'Unknown Browser';
+function getBrowser() {
+  const u = navigator.userAgent;
+  if (/Edg\//.test(u)) return 'Edge';
+  if (/OPR\/|Opera/.test(u)) return 'Opera';
+  if (/Chrome\//.test(u)) return 'Chrome';
+  if (/Firefox\//.test(u)) return 'Firefox';
+  if (/Safari\//.test(u)) return 'Safari';
+  return 'Unknown';
 }
-
-function getOSName() {
-  const ua = navigator.userAgent;
-  if (/Android/.test(ua))          return 'Android';
-  if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
-  if (/Windows NT 10/.test(ua))    return 'Windows 10/11';
-  if (/Windows/.test(ua))          return 'Windows';
-  if (/Mac OS X/.test(ua))         return 'macOS';
-  if (/Linux/.test(ua))            return 'Linux';
-  return 'Unknown OS';
+function getOS() {
+  const u = navigator.userAgent;
+  if (/Android/.test(u)) return 'Android';
+  if (/iPhone|iPad|iPod/.test(u)) return 'iOS';
+  if (/Windows NT 10/.test(u)) return 'Windows 10/11';
+  if (/Windows/.test(u)) return 'Windows';
+  if (/Mac OS X/.test(u)) return 'macOS';
+  if (/Linux/.test(u)) return 'Linux';
+  return 'Unknown';
 }
-
-function getDeviceType() {
-  const ua = navigator.userAgent;
-  if (/Tablet|iPad/.test(ua))             return 'Tablet';
-  if (/Mobile|Android|iPhone|iPod/.test(ua)) return 'Mobile';
+function getDevice() {
+  const u = navigator.userAgent;
+  if (/Tablet|iPad/.test(u)) return 'Tablet';
+  if (/Mobile|Android|iPhone|iPod/.test(u)) return 'Mobile';
   return 'Desktop';
 }
 
-function getScreenResolution() {
-  return `${screen.width}x${screen.height}`;
-}
-
-// ============================================================
-// SETTINGS
-// ============================================================
-const settings = {
-  theme: localStorage.getItem('rt-theme') || 'auto',
-};
-
+// ── Settings ─────────────────────────────────────────────────
 function applyTheme(theme) {
-  settings.theme = theme;
   localStorage.setItem('rt-theme', theme);
-  if (theme === 'auto') {
-    document.body.removeAttribute('data-theme');
-  } else {
-    document.body.setAttribute('data-theme', theme);
-  }
+  if (theme === 'auto') document.body.removeAttribute('data-theme');
+  else document.body.setAttribute('data-theme', theme);
   const sel = document.getElementById('select-theme');
   if (sel) sel.value = theme;
 }
+applyTheme(localStorage.getItem('rt-theme') || 'auto');
 
-applyTheme(settings.theme);
-
-// ============================================================
-// PAGE ROUTER
-// ============================================================
-const pages = {
-  landing:        document.getElementById('page-landing'),
-  terms:          document.getElementById('page-terms'),
-  permissions:    document.getElementById('page-permissions'),
-  session:        document.getElementById('page-session'),
-  pdf:            document.getElementById('page-pdf'),
-  complete:       document.getElementById('page-complete'),
-  settings:       document.getElementById('page-settings'),
-  errorCamera:    document.getElementById('page-error-camera'),
-  errorLocation:  document.getElementById('page-error-location'),
-  errorOffline:   document.getElementById('page-error-offline'),
-};
+// ── Page Router ───────────────────────────────────────────────
+const PAGES = ['landing','terms','permissions','session','pdf','complete','settings','errorCamera','errorLocation','errorOffline'];
+const pageEls = {};
+PAGES.forEach(name => {
+  const id = 'page-' + name.replace(/([A-Z])/g, c => '-' + c.toLowerCase());
+  pageEls[name] = document.getElementById(id);
+});
 
 let currentPage = 'landing';
 
 function showPage(name) {
-  Object.values(pages).forEach(p => { if (p) p.classList.remove('active'); });
-  if (pages[name]) {
-    pages[name].classList.add('active');
+  PAGES.forEach(n => { if (pageEls[n]) pageEls[n].classList.remove('active'); });
+  if (pageEls[name]) {
+    pageEls[name].classList.add('active');
     currentPage = name;
     window.scrollTo(0, 0);
   }
 }
 
-// ============================================================
-// SESSION STATE
-// ============================================================
+// ── Session State ─────────────────────────────────────────────
 const session = {
-  id:          '',
-  startTime:   null,
-  endTime:     null,
-  duration:    0,
-  lat:         null,
-  lng:         null,
-  accuracy:    null,
-  gpsTs:       null,
-  cameraOk:    false,
-  photoBlob:   null,
-  photoBase64: null,
-  browser:     getBrowserName(),
-  os:          getOSName(),
-  device:      getDeviceType(),
-  screenRes:   getScreenResolution(),
-  pdfName:     '',
+  id:'', startTime:null, endTime:null, duration:0,
+  lat:null, lng:null, accuracy:null, gpsTs:null,
+  cameraOk:false, photoBlob:null,
+  browser:getBrowser(), os:getOS(), device:getDevice(),
+  screenRes: screen.width+'x'+screen.height,
+  pdfName:''
 };
 
-// ============================================================
-// TIMER
-// ============================================================
-let timerInterval   = null;
-let timerStartTs    = null;
-let timerElapsed    = 0;
-let timerRunning    = false;
+// ── Timer ─────────────────────────────────────────────────────
+let timerInterval=null, timerStartTs=null, timerElapsed=0, timerRunning=false;
+const CIRCUMFERENCE = 565.5;
 
-const timerDisplay         = document.getElementById('timer-display');
-const sessionStatusText    = document.getElementById('session-status-text');
-const btnPauseResume       = document.getElementById('btn-pause-resume');
-const iconPause            = document.getElementById('icon-pause');
-const iconPlay             = document.getElementById('icon-play');
-const pauseResumeLabel     = document.getElementById('pause-resume-label');
-const timerProgressCircle  = document.getElementById('timer-progress-circle');
-
-const CIRCLE_CIRCUMFERENCE = 565.5;
-
-function startTimer() {
-  timerStartTs = Date.now();
-  timerRunning = true;
-  timerInterval = setInterval(tickTimer, 500);
-  updateTimerUI();
-}
-
-function pauseTimer() {
-  if (!timerRunning) return;
-  timerElapsed += Date.now() - timerStartTs;
-  clearInterval(timerInterval);
-  timerRunning = false;
-  updateTimerUI();
-}
-
-function resumeTimer() {
-  if (timerRunning) return;
-  timerStartTs = Date.now();
-  timerRunning = true;
-  timerInterval = setInterval(tickTimer, 500);
-  updateTimerUI();
-}
-
-function stopTimer() {
-  if (timerRunning) timerElapsed += Date.now() - timerStartTs;
-  clearInterval(timerInterval);
-  timerRunning = false;
-  session.duration = timerElapsed;
-  updateTimerUI();
-}
+function startTimer()  { timerStartTs=Date.now(); timerRunning=true; timerInterval=setInterval(tickTimer,500); updateTimerUI(); }
+function pauseTimer()  { if(!timerRunning)return; timerElapsed+=Date.now()-timerStartTs; clearInterval(timerInterval); timerRunning=false; updateTimerUI(); }
+function resumeTimer() { if(timerRunning)return; timerStartTs=Date.now(); timerRunning=true; timerInterval=setInterval(tickTimer,500); updateTimerUI(); }
+function stopTimer()   { if(timerRunning) timerElapsed+=Date.now()-timerStartTs; clearInterval(timerInterval); timerRunning=false; session.duration=timerElapsed; updateTimerUI(); }
 
 function tickTimer() {
-  const current = timerElapsed + (Date.now() - timerStartTs);
-  timerDisplay.textContent = formatDuration(current);
-  updateCircularProgress(current);
-}
-
-function updateCircularProgress(ms) {
-  const maxTime = 3600000;
-  const progress = Math.min(ms / maxTime, 1);
-  const offset = CIRCLE_CIRCUMFERENCE * (1 - progress);
-  if (timerProgressCircle) timerProgressCircle.style.strokeDashoffset = offset;
+  const cur = timerElapsed + (Date.now()-timerStartTs);
+  const el = document.getElementById('timer-display');
+  if (el) el.textContent = formatDuration(cur);
+  const circle = document.getElementById('timer-progress-circle');
+  if (circle) circle.style.strokeDashoffset = CIRCUMFERENCE * (1 - Math.min(cur/3600000,1));
 }
 
 function updateTimerUI() {
+  const disp  = document.getElementById('timer-display');
+  const status= document.getElementById('session-status-text');
+  const pause = document.getElementById('icon-pause');
+  const play  = document.getElementById('icon-play');
+  const label = document.getElementById('pause-resume-label');
   if (timerRunning) {
-    timerDisplay.classList.remove('paused');
-    sessionStatusText.classList.remove('paused');
-    sessionStatusText.textContent = 'Active';
-    iconPause.classList.remove('hidden');
-    iconPlay.classList.add('hidden');
-    pauseResumeLabel.textContent = 'Pause';
+    if(disp)   disp.classList.remove('paused');
+    if(status) { status.classList.remove('paused'); status.textContent='Active'; }
+    if(pause)  pause.classList.remove('hidden');
+    if(play)   play.classList.add('hidden');
+    if(label)  label.textContent='Pause';
   } else {
-    timerDisplay.classList.add('paused');
-    sessionStatusText.classList.add('paused');
-    sessionStatusText.textContent = 'Paused';
-    iconPause.classList.add('hidden');
-    iconPlay.classList.remove('hidden');
-    pauseResumeLabel.textContent = 'Resume';
+    if(disp)   disp.classList.add('paused');
+    if(status) { status.classList.add('paused'); status.textContent='Paused'; }
+    if(pause)  pause.classList.add('hidden');
+    if(play)   play.classList.remove('hidden');
+    if(label)  label.textContent='Resume';
   }
 }
 
-if (btnPauseResume) {
-  btnPauseResume.addEventListener('click', () => {
-    if (timerRunning) pauseTimer();
-    else              resumeTimer();
-  });
-}
+document.getElementById('btn-pause-resume')?.addEventListener('click', () => {
+  if (timerRunning) pauseTimer(); else resumeTimer();
+});
 
-// ============================================================
-// CAMERA
-// ============================================================
-const videoEl  = document.getElementById('camera-video');
-const canvasEl = document.getElementById('camera-canvas');
+// ── Camera ────────────────────────────────────────────────────
 let cameraStream = null;
-
 async function requestCamera() {
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false,
-    });
-    if (videoEl) videoEl.srcObject = cameraStream;
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:'user'}, audio:false });
+    const v = document.getElementById('camera-video');
+    if (v) v.srcObject = cameraStream;
     return true;
-  } catch (err) {
-    console.warn('Camera error:', err);
-    return false;
-  }
+  } catch(e) { return false; }
 }
-
 function capturePhoto() {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!cameraStream) { resolve(null); return; }
-    const track    = cameraStream.getVideoTracks()[0];
-    const s        = track.getSettings();
-    const w        = s.width  || 640;
-    const h        = s.height || 480;
-    canvasEl.width  = w;
-    canvasEl.height = h;
-    const ctx = canvasEl.getContext('2d');
-    ctx.drawImage(videoEl, 0, 0, w, h);
-    canvasEl.toBlob(blob => {
-      if (blob) {
+    const v = document.getElementById('camera-video');
+    const c = document.getElementById('camera-canvas');
+
+    function doCapture() {
+      const t = cameraStream.getVideoTracks()[0].getSettings();
+      c.width  = t.width  || v.videoWidth  || 640;
+      c.height = t.height || v.videoHeight || 480;
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(blob => {
+        if (!blob) { resolve(null); return; }
         session.photoBlob = blob;
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          session.photoBase64 = reader.result.split(',')[1];
-          resolve(blob);
-        };
-        reader.readAsDataURL(blob);
-      } else { resolve(null); }
-    }, 'image/jpeg', 0.82);
+        resolve(blob);
+      }, 'image/jpeg', 0.82);
+    }
+
+    // Wait for video to be actually playing with real frames
+    if (v.readyState >= 2 && v.videoWidth > 0) {
+      // Already playing — wait a bit more to ensure frame is visible
+      setTimeout(doCapture, 800);
+    } else {
+      v.addEventListener('canplay', () => setTimeout(doCapture, 800), { once: true });
+    }
   });
 }
+function stopCamera() { if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null;} }
 
-function stopCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(t => t.stop());
-    cameraStream = null;
-  }
-}
-
-// ============================================================
-// GEOLOCATION
-// ============================================================
+// ── Geolocation ───────────────────────────────────────────────
 async function requestLocation() {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!navigator.geolocation) { resolve(false); return; }
+
+    // First attempt — high accuracy
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      pos => {
         session.lat      = pos.coords.latitude;
         session.lng      = pos.coords.longitude;
         session.accuracy = pos.coords.accuracy;
         session.gpsTs    = pos.timestamp;
         resolve(true);
       },
-      (err) => { console.warn('Geolocation error:', err); resolve(false); },
+      () => {
+        // Second attempt — lower accuracy, faster
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            session.lat      = pos.coords.latitude;
+            session.lng      = pos.coords.longitude;
+            session.accuracy = pos.coords.accuracy;
+            session.gpsTs    = pos.timestamp;
+            resolve(true);
+          },
+          () => resolve(false),
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+        );
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 }
 
-// ============================================================
-// PERMISSIONS PAGE
-// ============================================================
-let cameraGranted   = false;
-let locationGranted = false;
+// ── Permissions ───────────────────────────────────────────────
+let cameraGranted=false, locationGranted=false;
 
-const permStatusCamera   = document.getElementById('perm-status-camera');
-const permStatusLocation = document.getElementById('perm-status-location');
-const permCardCamera     = document.getElementById('perm-card-camera');
-const permCardLocation   = document.getElementById('perm-card-location');
-const permsError         = document.getElementById('perms-error');
-const btnGrantPerms      = document.getElementById('btn-grant-perms');
-
-function setPermBadge(el, card, state) {
-  const map = {
-    pending: '<span class="badge badge-pending">Pending</span>',
-    granted: '<span class="badge badge-granted">Granted ✓</span>',
-    denied:  '<span class="badge badge-denied">Denied ✗</span>',
-  };
-  if (el) el.innerHTML = map[state] || map.pending;
-  if (card) card.className = 'perm-card' + (state === 'granted' ? ' granted' : state === 'denied' ? ' denied' : '');
+function setPermBadge(elId, cardId, state) {
+  const el   = document.getElementById(elId);
+  const card = document.getElementById(cardId);
+  const map  = { pending:'<span class="badge badge-pending">Pending</span>', granted:'<span class="badge badge-granted">Granted ✓</span>', denied:'<span class="badge badge-denied">Denied ✗</span>' };
+  if (el)   el.innerHTML = map[state]||map.pending;
+  if (card) card.className = 'perm-card'+(state==='granted'?' granted':state==='denied'?' denied':'');
 }
 
-if (btnGrantPerms) {
-  btnGrantPerms.addEventListener('click', async () => {
-    btnGrantPerms.disabled = true;
-    btnGrantPerms.textContent = 'Requesting…';
-    if (permsError) permsError.classList.add('hidden');
+document.getElementById('btn-grant-perms')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-grant-perms');
+  const err = document.getElementById('perms-error');
+  btn.disabled=true; btn.textContent='Requesting…';
+  if(err) err.classList.add('hidden');
 
-    setPermBadge(permStatusCamera, permCardCamera, 'pending');
-    cameraGranted = await requestCamera();
-    setPermBadge(permStatusCamera, permCardCamera, cameraGranted ? 'granted' : 'denied');
+  setPermBadge('perm-status-camera','perm-card-camera','pending');
+  cameraGranted = await requestCamera();
+  setPermBadge('perm-status-camera','perm-card-camera', cameraGranted?'granted':'denied');
 
-    setPermBadge(permStatusLocation, permCardLocation, 'pending');
-    locationGranted = await requestLocation();
-    setPermBadge(permStatusLocation, permCardLocation, locationGranted ? 'granted' : 'denied');
+  setPermBadge('perm-status-location','perm-card-location','pending');
+  locationGranted = await requestLocation();
+  setPermBadge('perm-status-location','perm-card-location', locationGranted?'granted':'denied');
 
-    if (!cameraGranted) {
-      btnGrantPerms.disabled = false;
-      btnGrantPerms.textContent = 'Try Again';
-      showPage('errorCamera'); return;
-    }
-    if (!locationGranted) {
-      btnGrantPerms.disabled = false;
-      btnGrantPerms.textContent = 'Try Again';
-      showPage('errorLocation'); return;
-    }
+  if (!cameraGranted) { btn.disabled=false; btn.textContent='Try Again'; showPage('errorCamera'); return; }
+  if (!locationGranted) { btn.disabled=false; btn.textContent='Try Again'; showPage('errorLocation'); return; }
 
-    await beginSession();
-  });
-}
+  await beginSession();
+});
 
-// ============================================================
-// BEGIN SESSION
-// ============================================================
+// ── Begin Session ─────────────────────────────────────────────
 async function beginSession() {
-  session.id        = generateSessionId();
+  session.id = generateSessionId();
   session.startTime = new Date();
-
   const photo = await capturePhoto();
-  session.cameraOk  = !!photo;
+  session.cameraOk = !!photo;
 
-  const idLabel = document.getElementById('session-id-label');
-  if (idLabel) idLabel.textContent = session.id;
+  const idEl  = document.getElementById('session-id-label');
+  const camEl = document.getElementById('status-camera');
+  const locEl = document.getElementById('status-location');
+  if(idEl)  idEl.textContent = session.id;
+  if(camEl) { camEl.textContent=session.cameraOk?'Verified ✓':'No Photo'; camEl.className='status-value '+(session.cameraOk?'status-ok':'status-warning'); }
+  if(locEl) { locEl.textContent=session.lat?'Captured ✓':'Unavailable'; locEl.className='status-value '+(session.lat?'status-ok':'status-warning'); }
 
-  const statusCam = document.getElementById('status-camera');
-  const statusLoc = document.getElementById('status-location');
-
-  if (statusCam) {
-    statusCam.textContent  = session.cameraOk ? 'Verified ✓' : 'No Photo';
-    statusCam.className    = 'status-value ' + (session.cameraOk ? 'status-ok' : 'status-warning');
-  }
-  if (statusLoc) {
-    statusLoc.textContent  = session.lat ? 'Captured ✓' : 'Unavailable';
-    statusLoc.className    = 'status-value ' + (session.lat ? 'status-ok' : 'status-warning');
-  }
-
-  timerElapsed = 0; timerStartTs = null;
-  if (timerProgressCircle) timerProgressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
-  if (timerDisplay) timerDisplay.textContent = '00:00:00';
+  timerElapsed=0; timerStartTs=null;
+  const circle = document.getElementById('timer-progress-circle');
+  const disp   = document.getElementById('timer-display');
+  if(circle) circle.style.strokeDashoffset = CIRCUMFERENCE;
+  if(disp)   disp.textContent = '00:00:00';
 
   showPage('session');
   startTimer();
 }
 
-// ============================================================
-// END SESSION
-// ============================================================
-const btnEndSession = document.getElementById('btn-end-session');
-if (btnEndSession) {
-  btnEndSession.addEventListener('click', () => {
-    if (!confirm('Are you sure you want to end the session?')) return;
-    endSession();
-  });
-}
-
-async function endSession() {
-  stopTimer();
-  session.endTime = new Date();
-  if (cameraStream && !session.photoBase64) await capturePhoto();
+// ── End Session ───────────────────────────────────────────────
+document.getElementById('btn-end-session')?.addEventListener('click', () => {
+  if (!confirm('Are you sure you want to end the session?')) return;
+  stopTimer(); session.endTime=new Date();
   stopCamera();
-  populateCompletePage();
-  showPage('complete');
-  await sendSessionData();
-}
-
-function populateCompletePage() {
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const set = (id,val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
   set('c-duration', formatDuration(session.duration));
   set('c-start',    formatDateTime(session.startTime));
   set('c-end',      formatDateTime(session.endTime));
-  set('c-location', session.lat ? `${session.lat.toFixed(5)}, ${session.lng.toFixed(5)}` : 'Unavailable');
-  set('c-camera',   session.cameraOk ? 'Verified ✓' : 'Not captured');
-}
+  set('c-location', session.lat?`${session.lat.toFixed(5)}, ${session.lng.toFixed(5)}`:'Unavailable');
+  set('c-camera',   session.cameraOk?'Verified ✓':'Not captured');
+  showPage('complete');
+  sendSessionData();
+});
 
-// ============================================================
-// SEND SESSION DATA
-// ============================================================
+// ── Send Data ─────────────────────────────────────────────────
 async function sendSessionData() {
-  const sendingEl = document.getElementById('complete-sending');
-  const sentEl    = document.getElementById('complete-sent');
-  const errorEl   = document.getElementById('complete-error');
+  const show = id => document.getElementById(id)?.classList.remove('hidden');
+  const hide = id => document.getElementById(id)?.classList.add('hidden');
+  show('complete-sending'); hide('complete-sent'); hide('complete-error');
 
-  if (sendingEl) sendingEl.classList.remove('hidden');
-  if (sentEl)    sentEl.classList.add('hidden');
-  if (errorEl)   errorEl.classList.add('hidden');
-
-  const formData = new FormData();
-  formData.append('sessionId',    session.id);
-  formData.append('startTime',    session.startTime.toISOString());
-  formData.append('endTime',      session.endTime.toISOString());
-  formData.append('duration',     formatDuration(session.duration));
-  formData.append('durationMs',   String(session.duration));
-  formData.append('latitude',     session.lat      != null ? String(session.lat)      : '');
-  formData.append('longitude',    session.lng      != null ? String(session.lng)      : '');
-  formData.append('accuracy',     session.accuracy != null ? String(session.accuracy) : '');
-  formData.append('gpsTimestamp', session.gpsTs    != null ? String(session.gpsTs)    : '');
-  formData.append('browser',      session.browser);
-  formData.append('os',           session.os);
-  formData.append('device',       session.device);
-  formData.append('screenRes',    session.screenRes);
-  formData.append('cameraOk',     String(session.cameraOk));
-  formData.append('pdfName',      session.pdfName || '');
-
-  if (session.photoBlob) {
-    formData.append('photo', session.photoBlob, `verify-${session.id}.jpg`);
-  }
+  const fd = new FormData();
+  fd.append('sessionId',  session.id);
+  fd.append('startTime',  session.startTime.toISOString());
+  fd.append('endTime',    session.endTime.toISOString());
+  fd.append('duration',   formatDuration(session.duration));
+  fd.append('latitude',   session.lat??'');
+  fd.append('longitude',  session.lng??'');
+  fd.append('accuracy',   session.accuracy??'');
+  fd.append('browser',    session.browser);
+  fd.append('os',         session.os);
+  fd.append('device',     session.device);
+  fd.append('screenRes',  session.screenRes);
+  fd.append('cameraOk',   String(session.cameraOk));
+  fd.append('pdfName',    session.pdfName||'');
+  if (session.photoBlob) fd.append('photo', session.photoBlob, `verify-${session.id}.jpg`);
 
   try {
-    if (!navigator.onLine) throw new Error('Offline');
-
-    const res = await fetch('/.netlify/functions/session', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    if (sendingEl) sendingEl.classList.add('hidden');
-    if (sentEl)    sentEl.classList.remove('hidden');
-  } catch (err) {
-    console.error('Send error:', err);
-    if (sendingEl) sendingEl.classList.add('hidden');
-    if (errorEl)   errorEl.classList.remove('hidden');
-
-    try {
-      const fallback = {
-        sessionId: session.id,
-        startTime: session.startTime.toISOString(),
-        endTime:   session.endTime.toISOString(),
-        duration:  formatDuration(session.duration),
-        lat:       session.lat,
-        lng:       session.lng,
-        browser:   session.browser,
-        os:        session.os,
-        device:    session.device,
-        screenRes: session.screenRes,
-        cameraOk:  session.cameraOk,
-      };
-      localStorage.setItem(`rt-${session.id}`, JSON.stringify(fallback));
-    } catch (_) { /* ignore */ }
+    const res = await fetch('/.netlify/functions/session', { method:'POST', body:fd });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    hide('complete-sending'); show('complete-sent');
+  } catch(e) {
+    hide('complete-sending'); show('complete-error');
+    try { localStorage.setItem('rt-'+session.id, JSON.stringify({...session, startTime:session.startTime.toISOString(), endTime:session.endTime.toISOString()})); } catch(_){}
   }
 }
 
-// ============================================================
-// PDF READER
-// ============================================================
-let pdfDoc        = null;
-let pdfPageNum    = 1;
-let pdfScale      = 1.5;
-let pdfRendering  = false;
-let pdfPendingPg  = null;
+// ── PDF Reader ────────────────────────────────────────────────
+let pdfDoc=null, pdfPage=1, pdfScale=1.5, pdfRendering=false, pdfPending=null;
 
-const pdfCanvas      = document.getElementById('pdf-canvas');
-const pdfCtx         = pdfCanvas ? pdfCanvas.getContext('2d') : null;
-const pdfCurrentPage = document.getElementById('pdf-current-page');
-const pdfTotalPages  = document.getElementById('pdf-total-pages');
-const pdfFilenameEl  = document.getElementById('pdf-filename');
-const pdfDropZone    = document.getElementById('pdf-drop-zone');
-const pdfViewerWrap  = document.getElementById('pdf-viewer-wrap');
-const zoomLevelEl    = document.getElementById('zoom-level');
-const pdfProgressBar = document.getElementById('pdf-progress-bar');
-const pdfProgressFill= document.getElementById('pdf-progress-fill');
+function renderPage(num) {
+  if (!pdfDoc) return;
+  if (pdfRendering) { pdfPending=num; return; }
+  pdfRendering=true;
+  const cur = document.getElementById('pdf-current-page');
+  if(cur) cur.textContent=num;
+  const fill = document.getElementById('pdf-progress-fill');
+  const bar  = document.getElementById('pdf-progress-bar');
+  if(fill) fill.style.width = Math.round(num/pdfDoc.numPages*100)+'%';
+  if(bar)  bar.classList.remove('hidden');
 
-function renderPdfPage(num) {
-  if (!pdfDoc || !pdfCtx) return;
-  if (pdfRendering) { pdfPendingPg = num; return; }
-  pdfRendering = true;
-  if (pdfCurrentPage) pdfCurrentPage.textContent = num;
-  updatePdfProgress(num);
-
-  pdfDoc.getPage(num).then(page => {
-    const viewport = page.getViewport({ scale: pdfScale });
-    pdfCanvas.height = viewport.height;
-    pdfCanvas.width  = viewport.width;
-    page.render({ canvasContext: pdfCtx, viewport }).promise.then(() => {
-      pdfRendering = false;
-      if (pdfPendingPg !== null) {
-        renderPdfPage(pdfPendingPg);
-        pdfPendingPg = null;
-      }
+  pdfDoc.getPage(num).then(pg => {
+    const vp = pg.getViewport({scale:pdfScale});
+    const canvas = document.getElementById('pdf-canvas');
+    canvas.height=vp.height; canvas.width=vp.width;
+    pg.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(()=>{
+      pdfRendering=false;
+      if(pdfPending!==null){renderPage(pdfPending);pdfPending=null;}
     });
   });
 }
 
-function updatePdfProgress(num) {
-  if (!pdfDoc || !pdfProgressFill || !pdfProgressBar) return;
-  const pct = Math.round((num / pdfDoc.numPages) * 100);
-  pdfProgressFill.style.width = pct + '%';
-  pdfProgressBar.classList.remove('hidden');
-}
-
-function loadPdfFile(file) {
-  if (!file || file.type !== 'application/pdf') return;
-  const name = file.name.length > 30 ? file.name.slice(0, 27) + '…' : file.name;
-  if (pdfFilenameEl) pdfFilenameEl.textContent = name;
+function loadPDF(file) {
+  if(!file||file.type!=='application/pdf') return;
   session.pdfName = file.name;
-
+  const nameEl = document.getElementById('pdf-filename');
+  if(nameEl) nameEl.textContent = file.name.length>30?file.name.slice(0,27)+'…':file.name;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    const arr = new Uint8Array(e.target.result);
-    pdfjsLib.getDocument(arr).promise.then(doc => {
-      pdfDoc    = doc;
-      pdfPageNum = 1;
-      if (pdfTotalPages) pdfTotalPages.textContent = doc.numPages;
-      if (pdfDropZone)   pdfDropZone.classList.add('hidden');
-      if (pdfViewerWrap) pdfViewerWrap.classList.remove('hidden');
-      renderPdfPage(pdfPageNum);
-    }).catch(err => alert('Could not open PDF: ' + err.message));
+  reader.onload = e => {
+    pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise.then(doc=>{
+      pdfDoc=doc; pdfPage=1;
+      const tot=document.getElementById('pdf-total-pages');
+      if(tot) tot.textContent=doc.numPages;
+      document.getElementById('pdf-drop-zone')?.classList.add('hidden');
+      document.getElementById('pdf-viewer-wrap')?.classList.remove('hidden');
+      renderPage(1);
+    });
   };
   reader.readAsArrayBuffer(file);
 }
 
-const btnSelectPdf = document.getElementById('btn-select-pdf');
-const pdfFileInput = document.getElementById('pdf-file-input');
-if (btnSelectPdf) btnSelectPdf.addEventListener('click', () => pdfFileInput.click());
-if (pdfFileInput)  pdfFileInput.addEventListener('change', e => { if (e.target.files[0]) loadPdfFile(e.target.files[0]); });
+document.getElementById('btn-select-pdf')?.addEventListener('click', ()=>document.getElementById('pdf-file-input')?.click());
+document.getElementById('pdf-file-input')?.addEventListener('change', e=>{ if(e.target.files[0]) loadPDF(e.target.files[0]); });
+document.getElementById('btn-prev-page')?.addEventListener('click', ()=>{ if(pdfDoc&&pdfPage>1) renderPage(--pdfPage); });
+document.getElementById('btn-next-page')?.addEventListener('click', ()=>{ if(pdfDoc&&pdfPage<pdfDoc.numPages) renderPage(++pdfPage); });
+document.getElementById('btn-zoom-in')?.addEventListener('click',  ()=>{ if(pdfScale<4){pdfScale=Math.round((pdfScale+0.25)*100)/100; const z=document.getElementById('zoom-level'); if(z) z.textContent=Math.round(pdfScale*100)+'%'; if(pdfDoc)renderPage(pdfPage);} });
+document.getElementById('btn-zoom-out')?.addEventListener('click', ()=>{ if(pdfScale>0.5){pdfScale=Math.round((pdfScale-0.25)*100)/100; const z=document.getElementById('zoom-level'); if(z) z.textContent=Math.round(pdfScale*100)+'%'; if(pdfDoc)renderPage(pdfPage);} });
+document.getElementById('btn-pdf-fullscreen')?.addEventListener('click', ()=>{ const el=document.getElementById('pdf-viewer-wrap'); if(el?.requestFullscreen) el.requestFullscreen(); else if(el?.webkitRequestFullscreen) el.webkitRequestFullscreen(); });
 
-if (pdfDropZone) {
-  pdfDropZone.addEventListener('dragover',  e => { e.preventDefault(); pdfDropZone.style.borderColor = 'var(--primary)'; });
-  pdfDropZone.addEventListener('dragleave', ()=> { pdfDropZone.style.borderColor = ''; });
-  pdfDropZone.addEventListener('drop', e => { e.preventDefault(); pdfDropZone.style.borderColor = ''; if (e.dataTransfer.files[0]) loadPdfFile(e.dataTransfer.files[0]); });
-}
+// ── Navigation ────────────────────────────────────────────────
+document.getElementById('btn-hero-start')?.addEventListener('click', ()=>showPage('terms'));
+document.getElementById('btn-hero-learn')?.addEventListener('click', ()=>document.getElementById('how-it-works')?.scrollIntoView({behavior:'smooth'}));
+document.getElementById('link-footer-terms')?.addEventListener('click', e=>{e.preventDefault();showPage('terms');});
+document.getElementById('link-footer-settings')?.addEventListener('click', e=>{e.preventDefault();showPage('settings');});
+document.getElementById('btn-back-terms')?.addEventListener('click', ()=>showPage('landing'));
+document.getElementById('btn-back-perms')?.addEventListener('click', ()=>{stopCamera();showPage('terms');});
+document.getElementById('btn-open-pdf')?.addEventListener('click', ()=>showPage('pdf'));
+document.getElementById('btn-session-settings')?.addEventListener('click', ()=>showPage('settings'));
+document.getElementById('btn-back-pdf')?.addEventListener('click', ()=>showPage('session'));
+document.getElementById('btn-back-settings')?.addEventListener('click', ()=>showPage('landing'));
+document.getElementById('btn-retry-camera')?.addEventListener('click', ()=>showPage('permissions'));
+document.getElementById('btn-error-camera-home')?.addEventListener('click', ()=>showPage('landing'));
+document.getElementById('btn-retry-location')?.addEventListener('click', ()=>showPage('permissions'));
+document.getElementById('btn-error-location-home')?.addEventListener('click', ()=>showPage('landing'));
+document.getElementById('btn-retry-offline')?.addEventListener('click', ()=>{ if(navigator.onLine)showPage('landing'); else alert('Still offline.'); });
+document.getElementById('btn-error-offline-home')?.addEventListener('click', ()=>showPage('landing'));
 
-const btnPrev = document.getElementById('btn-prev-page');
-const btnNext = document.getElementById('btn-next-page');
-if (btnPrev) btnPrev.addEventListener('click', () => { if (pdfDoc && pdfPageNum > 1) renderPdfPage(--pdfPageNum); });
-if (btnNext) btnNext.addEventListener('click', () => { if (pdfDoc && pdfPageNum < pdfDoc.numPages) renderPdfPage(++pdfPageNum); });
+document.getElementById('btn-new-session')?.addEventListener('click', ()=>{ resetAll(); showPage('terms'); });
+document.getElementById('btn-back-home')?.addEventListener('click',   ()=>{ resetAll(); showPage('landing'); });
 
-const btnZoomIn  = document.getElementById('btn-zoom-in');
-const btnZoomOut = document.getElementById('btn-zoom-out');
-if (btnZoomIn) btnZoomIn.addEventListener('click', () => {
-  if (pdfScale >= 4) return;
-  pdfScale = Math.round((pdfScale + 0.25) * 100) / 100;
-  if (zoomLevelEl) zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
-  if (pdfDoc) renderPdfPage(pdfPageNum);
-});
-if (btnZoomOut) btnZoomOut.addEventListener('click', () => {
-  if (pdfScale <= 0.5) return;
-  pdfScale = Math.round((pdfScale - 0.25) * 100) / 100;
-  if (zoomLevelEl) zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
-  if (pdfDoc) renderPdfPage(pdfPageNum);
-});
+document.getElementById('select-theme')?.addEventListener('change', e=>applyTheme(e.target.value));
 
-const btnFullscreen = document.getElementById('btn-pdf-fullscreen');
-if (btnFullscreen) {
-  btnFullscreen.addEventListener('click', () => {
-    const el = pdfViewerWrap || document.getElementById('page-pdf');
-    if (el && el.requestFullscreen) el.requestFullscreen();
-    else if (el && el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  });
-}
-
-// ============================================================
-// NAVIGATION WIRING
-// ============================================================
-
-// Landing
-const btnHeroStart = document.getElementById('btn-hero-start');
-const btnHeroLearn = document.getElementById('btn-hero-learn');
-if (btnHeroStart) btnHeroStart.addEventListener('click', () => showPage('terms'));
-if (btnHeroLearn) btnHeroLearn.addEventListener('click', () => {
-  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+// Terms checkbox
+document.getElementById('chk-agree')?.addEventListener('change', function() {
+  const btn = document.getElementById('btn-agree');
+  if(btn) btn.disabled = !this.checked;
 });
 
-// Footer links
-document.getElementById('link-footer-terms')?.addEventListener('click', e => { e.preventDefault(); showPage('terms'); });
-document.getElementById('link-footer-settings')?.addEventListener('click', e => { e.preventDefault(); showPage('settings'); });
-
-// Terms page
-document.getElementById('btn-back-terms')?.addEventListener('click', () => showPage('landing'));
-
-const chkAgree = document.getElementById('chk-agree');
-const btnAgree = document.getElementById('btn-agree');
-if (chkAgree) chkAgree.addEventListener('change', () => { if (btnAgree) btnAgree.disabled = !chkAgree.checked; });
-if (btnAgree) btnAgree.addEventListener('click', () => {
-  if (!chkAgree || !chkAgree.checked) return;
-  setPermBadge(permStatusCamera,   permCardCamera,   'pending');
-  setPermBadge(permStatusLocation, permCardLocation, 'pending');
-  if (permsError)    permsError.classList.add('hidden');
-  if (btnGrantPerms) { btnGrantPerms.disabled = false; btnGrantPerms.textContent = 'Grant Permissions'; }
+document.getElementById('btn-agree')?.addEventListener('click', ()=>{
+  const chk = document.getElementById('chk-agree');
+  if(!chk||!chk.checked) return;
   showPage('permissions');
 });
 
-// Permissions back
-document.getElementById('btn-back-perms')?.addEventListener('click', () => { stopCamera(); showPage('terms'); });
-
-// Session page
-document.getElementById('btn-open-pdf')?.addEventListener('click', () => showPage('pdf'));
-document.getElementById('btn-session-settings')?.addEventListener('click', () => showPage('settings'));
-
-// PDF back
-document.getElementById('btn-back-pdf')?.addEventListener('click', () => showPage('session'));
-
-// Complete page
-document.getElementById('btn-new-session')?.addEventListener('click', () => {
-  resetSession();
-  showPage('terms');
-});
-document.getElementById('btn-back-home')?.addEventListener('click', () => {
-  resetSession();
-  showPage('landing');
-});
-
-// Settings back
-document.getElementById('btn-back-settings')?.addEventListener('click', () => showPage('landing'));
-const selectTheme = document.getElementById('select-theme');
-if (selectTheme) selectTheme.addEventListener('change', e => applyTheme(e.target.value));
-
-// Error pages
-document.getElementById('btn-retry-camera')?.addEventListener('click',   () => showPage('permissions'));
-document.getElementById('btn-error-camera-home')?.addEventListener('click', () => showPage('landing'));
-document.getElementById('btn-retry-location')?.addEventListener('click',  () => showPage('permissions'));
-document.getElementById('btn-error-location-home')?.addEventListener('click', () => showPage('landing'));
-document.getElementById('btn-retry-offline')?.addEventListener('click',   () => {
-  if (navigator.onLine) showPage('landing');
-  else alert('Still offline. Please check your connection.');
-});
-document.getElementById('btn-error-offline-home')?.addEventListener('click', () => showPage('landing'));
-
 // FAQ accordion
-document.querySelectorAll('.faq-question').forEach(q => {
-  q.addEventListener('click', () => {
-    const item = q.parentElement;
-    const isOpen = item.classList.contains('open');
-    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-    if (!isOpen) item.classList.add('open');
+document.querySelectorAll('.faq-question').forEach(q=>{
+  q.addEventListener('click', ()=>{
+    const item=q.parentElement;
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if(!open) item.classList.add('open');
   });
 });
 
-// ============================================================
-// RESET SESSION
-// ============================================================
-function resetSession() {
-  timerElapsed = 0; timerStartTs = null; timerRunning = false;
-  session.id = ''; session.startTime = null; session.endTime = null;
-  session.duration = 0; session.lat = null; session.lng = null;
-  session.accuracy = null; session.cameraOk = false;
-  session.photoBlob = null; session.photoBase64 = null;
-  session.pdfName = '';
-
-  if (timerDisplay)         timerDisplay.textContent = '00:00:00';
-  if (timerDisplay)         timerDisplay.classList.remove('paused');
-  if (sessionStatusText)    sessionStatusText.textContent = 'Active';
-  if (sessionStatusText)    sessionStatusText.classList.remove('paused');
-  if (iconPause)            iconPause.classList.remove('hidden');
-  if (iconPlay)             iconPlay.classList.add('hidden');
-  if (pauseResumeLabel)     pauseResumeLabel.textContent = 'Pause';
-  if (timerProgressCircle)  timerProgressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
-
-  if (chkAgree)   chkAgree.checked = false;
-  if (btnAgree)   btnAgree.disabled = true;
-
-  const completeSending = document.getElementById('complete-sending');
-  const completeSent    = document.getElementById('complete-sent');
-  const completeError   = document.getElementById('complete-error');
-  if (completeSending) completeSending.classList.remove('hidden');
-  if (completeSent)    completeSent.classList.add('hidden');
-  if (completeError)   completeError.classList.add('hidden');
-
-  pdfDoc = null; pdfPageNum = 1;
-  if (pdfDropZone)     pdfDropZone.classList.remove('hidden');
-  if (pdfViewerWrap)   pdfViewerWrap.classList.add('hidden');
-  if (pdfProgressBar)  pdfProgressBar.classList.add('hidden');
-  if (pdfFilenameEl)   pdfFilenameEl.textContent = 'PDF Reader';
-  if (pdfCurrentPage)  pdfCurrentPage.textContent = '—';
-  if (pdfTotalPages)   pdfTotalPages.textContent = '—';
+// ── Reset ─────────────────────────────────────────────────────
+function resetAll() {
+  timerElapsed=0; timerStartTs=null; timerRunning=false;
+  Object.assign(session,{id:'',startTime:null,endTime:null,duration:0,lat:null,lng:null,accuracy:null,cameraOk:false,photoBlob:null,pdfName:''});
+  const disp=document.getElementById('timer-display');
+  const circle=document.getElementById('timer-progress-circle');
+  if(disp)   disp.textContent='00:00:00';
+  if(circle) circle.style.strokeDashoffset=CIRCUMFERENCE;
+  updateTimerUI();
+  const chk=document.getElementById('chk-agree');
+  const btn=document.getElementById('btn-agree');
+  if(chk) chk.checked=false;
+  if(btn) btn.disabled=true;
+  document.getElementById('complete-sending')?.classList.remove('hidden');
+  document.getElementById('complete-sent')?.classList.add('hidden');
+  document.getElementById('complete-error')?.classList.add('hidden');
+  pdfDoc=null; pdfPage=1;
+  document.getElementById('pdf-drop-zone')?.classList.remove('hidden');
+  document.getElementById('pdf-viewer-wrap')?.classList.add('hidden');
+  document.getElementById('pdf-progress-bar')?.classList.add('hidden');
 }
 
-// ============================================================
-// PREVENT ACCIDENTAL CLOSE
-// ============================================================
-window.addEventListener('beforeunload', e => {
-  if (currentPage === 'session' && timerRunning) {
-    e.preventDefault();
-    e.returnValue = 'Your reading session is active. Are you sure you want to leave?';
-    return e.returnValue;
-  }
+// ── Guards ────────────────────────────────────────────────────
+window.addEventListener('beforeunload', e=>{
+  if(currentPage==='session'&&timerRunning){e.preventDefault();e.returnValue='Session is active.';}
 });
+window.addEventListener('offline', ()=>{ if(currentPage!=='landing') showPage('errorOffline'); });
 
-// ============================================================
-// OFFLINE DETECTION
-// ============================================================
-window.addEventListener('offline', () => {
-  if (currentPage !== 'landing') showPage('errorOffline');
-});
-
-// ============================================================
-// PWA REGISTRATION
-// ============================================================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log('✅ Service Worker registered'))
-      .catch(err => console.warn('⚠️ Service Worker registration failed:', err));
-  });
+// ── PWA ───────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
 
-// ============================================================
-// INIT
-// ============================================================
+// ── Init ──────────────────────────────────────────────────────
 showPage('landing');
