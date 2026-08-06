@@ -76,7 +76,8 @@ const PAGE_IDS = {
   landing:'page-landing', terms:'page-terms', permissions:'page-permissions',
   goal:'page-goal', session:'page-session', pdf:'page-pdf',
   complete:'page-complete', settings:'page-settings', history:'page-history',
-  achievements:'page-achievements',
+  achievements:'page-achievements', certificate:'page-certificate',
+  challenges:'page-challenges', qr:'page-qr',
   errorCamera:'page-error-camera', errorLocation:'page-error-location', errorOffline:'page-error-offline'
 };
 const pageEls = {};
@@ -336,6 +337,15 @@ document.getElementById('btn-end-session')?.addEventListener('click',()=>{
   saveSessionToHistory();
   updateStreak();
   checkAchievements();
+  updateChallengeProgress();
+
+  // Generate QR preview on complete page
+  const qrPreviewWrap   = document.getElementById('qr-preview-wrap');
+  const qrPreviewCanvas = document.getElementById('qr-preview-canvas');
+  if (qrPreviewWrap && qrPreviewCanvas) {
+    qrPreviewWrap.classList.remove('hidden');
+    drawQRCode(qrPreviewCanvas, buildQRData(session), 120);
+  }
 
   showPage('complete');
   sendSessionData();
@@ -552,6 +562,174 @@ document.getElementById('btn-zoom-in')?.addEventListener('click',()=>{if(pdfScal
 document.getElementById('btn-zoom-out')?.addEventListener('click',()=>{if(pdfScale>0.5){pdfScale=Math.round((pdfScale-0.25)*100)/100;const z=document.getElementById('zoom-level');if(z)z.textContent=Math.round(pdfScale*100)+'%';if(pdfDoc)renderPage(pdfPage);}});
 document.getElementById('btn-pdf-fullscreen')?.addEventListener('click',()=>{const el=document.getElementById('pdf-viewer-wrap');if(el?.requestFullscreen)el.requestFullscreen();else if(el?.webkitRequestFullscreen)el.webkitRequestFullscreen();});
 
+// ── QR Code Generator (pure JS, no library) ───────────────────
+// Minimal QR code using a data URI approach via canvas
+function drawQRCode(canvasEl, text, size) {
+  if (!canvasEl) return;
+  // Use a free QR API to generate and draw on canvas
+  const img = new Image();
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&bgcolor=ffffff&color=1a1a2e`;
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    canvasEl.width  = size;
+    canvasEl.height = size;
+    canvasEl.getContext('2d').drawImage(img, 0, 0, size, size);
+  };
+  img.src = url;
+}
+
+function buildQRData(s) {
+  return JSON.stringify({
+    id:       s.id,
+    date:     s.startTime ? s.startTime.toISOString().slice(0,10) : '',
+    duration: formatDuration(s.duration),
+    status:   'VERIFIED',
+    url:      'https://read-track.netlify.app',
+  });
+}
+
+// ── Certificate Generator ──────────────────────────────────────
+function drawCertificate(canvasEl, sessionData, streakData) {
+  if (!canvasEl) return;
+  const W = 800, H = 560;
+  canvasEl.width  = W;
+  canvasEl.height = H;
+  const ctx = canvasEl.getContext('2d');
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0,   '#0f172a');
+  bg.addColorStop(0.5, '#1e1b4b');
+  bg.addColorStop(1,   '#0f172a');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Border
+  ctx.strokeStyle = '#6366f1';
+  ctx.lineWidth   = 4;
+  ctx.strokeRect(16, 16, W-32, H-32);
+  ctx.strokeStyle = 'rgba(99,102,241,0.3)';
+  ctx.lineWidth   = 1;
+  ctx.strokeRect(24, 24, W-48, H-48);
+
+  // Emoji
+  ctx.font      = '60px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('📚', W/2, 100);
+
+  // Title
+  ctx.font      = 'bold 32px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('Certificate of Reading', W/2, 155);
+
+  // Subtitle
+  ctx.font      = '16px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText('This certifies the successful completion of a verified reading session', W/2, 190);
+
+  // Divider
+  const grad = ctx.createLinearGradient(W/2-180, 0, W/2+180, 0);
+  grad.addColorStop(0,   'transparent');
+  grad.addColorStop(0.5, '#6366f1');
+  grad.addColorStop(1,   'transparent');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath(); ctx.moveTo(W/2-180, 210); ctx.lineTo(W/2+180, 210); ctx.stroke();
+
+  // Session details
+  const details = [
+    ['Session ID',  sessionData.id],
+    ['Duration',    formatDuration(sessionData.duration)],
+    ['Date',        sessionData.startTime ? sessionData.startTime.toLocaleDateString() : ''],
+    ['Total Sessions', String(streakData.totalSessions || 1)],
+    ['Total Hours',   Math.floor((streakData.totalMs||0)/3600000) + 'h'],
+  ];
+
+  ctx.textAlign = 'left';
+  details.forEach(([label, value], i) => {
+    const y = 250 + i * 40;
+    ctx.font      = '13px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(label, W/2 - 200, y);
+    ctx.font      = 'bold 15px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(value, W/2 + 20, y);
+  });
+
+  // Footer
+  ctx.textAlign = 'center';
+  ctx.font      = '13px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText('ReadTrack — read-track.netlify.app', W/2, H - 40);
+  ctx.fillText('Generated on ' + new Date().toLocaleDateString(), W/2, H - 22);
+}
+
+// ── Challenges ────────────────────────────────────────────────
+const CHALLENGES = [
+  { id:'c30',  emoji:'🔥', name:'30-Day Challenge',     desc:'Read every day for 30 days straight',  days:30,  target:30 },
+  { id:'c7',   emoji:'📅', name:'Week Reading Challenge', desc:'Complete 7 sessions this week',        days:7,   target:7  },
+  { id:'cWE',  emoji:'🌅', name:'Weekend Challenge',    desc:'Read every weekend for 4 weeks',        days:28,  target:8  },
+  { id:'cAM',  emoji:'🌄', name:'Morning Reader',       desc:'Complete 10 morning reading sessions',  days:30,  target:10 },
+  { id:'cNO',  emoji:'🌙', name:'Night Owl Reader',     desc:'Complete 10 evening reading sessions',  days:30,  target:10 },
+  { id:'cSP',  emoji:'⚡', name:'Speed Reader',         desc:'Complete 5 sessions of 45+ minutes',   days:14,  target:5  },
+];
+
+function renderChallenges() {
+  const list      = document.getElementById('challenges-list');
+  if (!list) return;
+  const joined    = loadData('rt-challenges', {});
+  const history   = loadData('rt-history',   []);
+  list.innerHTML  = '';
+
+  CHALLENGES.forEach(c => {
+    const isJoined = !!joined[c.id];
+    const progress = isJoined ? Math.min(joined[c.id].progress || 0, c.target) : 0;
+    const pct      = Math.round(progress / c.target * 100);
+    const div      = document.createElement('div');
+    div.className  = 'challenge-card' + (isJoined ? ' joined' : '');
+    div.innerHTML  = `
+      <div class="challenge-emoji">${c.emoji}</div>
+      <div class="challenge-body">
+        <div class="challenge-name">${c.name}</div>
+        <div class="challenge-desc">${c.desc}</div>
+        ${isJoined ? `
+          <div class="challenge-progress">
+            <div class="challenge-progress-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="challenge-meta">${progress}/${c.target} sessions · ${pct}% complete</div>
+        ` : `<div class="challenge-meta">${c.days}-day challenge · ${c.target} sessions</div>`}
+      </div>
+      <div class="challenge-action">
+        ${isJoined
+          ? `<span class="challenge-badge">Joined ✓</span>`
+          : `<button class="btn btn-primary btn-sm" data-cid="${c.id}">Join</button>`}
+      </div>
+    `;
+    list.appendChild(div);
+  });
+
+  list.querySelectorAll('[data-cid]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const cid   = btn.dataset.cid;
+      const saved = loadData('rt-challenges', {});
+      saved[cid]  = { joinedAt: new Date().toISOString(), progress: 0 };
+      saveData('rt-challenges', saved);
+      renderChallenges();
+    });
+  });
+}
+
+function updateChallengeProgress() {
+  const joined = loadData('rt-challenges', {});
+  let changed  = false;
+  Object.keys(joined).forEach(cid => {
+    joined[cid].progress = (joined[cid].progress || 0) + 1;
+    changed = true;
+  });
+  if (changed) saveData('rt-challenges', joined);
+}
+
 // ── Navigation Wiring ─────────────────────────────────────────
 document.getElementById('btn-hero-start')?.addEventListener('click',()=>showPage('terms'));
 document.getElementById('btn-hero-learn')?.addEventListener('click',()=>document.getElementById('how-it-works')?.scrollIntoView({behavior:'smooth'}));
@@ -573,6 +751,48 @@ document.getElementById('btn-error-offline-home')?.addEventListener('click',()=>
 document.getElementById('btn-new-session')?.addEventListener('click',()=>{resetAll();showPage('terms');});
 document.getElementById('btn-back-home')?.addEventListener('click',()=>{resetAll();showPage('landing');});
 document.getElementById('select-theme')?.addEventListener('change',e=>applyTheme(e.target.value));
+
+// Certificate
+document.getElementById('btn-view-certificate')?.addEventListener('click',()=>{
+  const canvas    = document.getElementById('cert-canvas');
+  const streakData= getStreakData();
+  drawCertificate(canvas, session, streakData);
+  showPage('certificate');
+});
+document.getElementById('btn-back-certificate')?.addEventListener('click',()=>showPage('complete'));
+document.getElementById('btn-download-cert')?.addEventListener('click',()=>{
+  const canvas = document.getElementById('cert-canvas');
+  if (!canvas) return;
+  const link   = document.createElement('a');
+  link.download = `ReadTrack-Certificate-${session.id||'session'}.png`;
+  link.href     = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// QR Code
+document.getElementById('btn-view-qr')?.addEventListener('click',()=>{
+  const qrCanvas = document.getElementById('qr-canvas');
+  const data     = buildQRData(session);
+  drawQRCode(qrCanvas, data, 300);
+  const set = (id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
+  set('qr-session-id', session.id||'—');
+  set('qr-duration',   formatDuration(session.duration));
+  set('qr-date',       session.startTime?session.startTime.toLocaleDateString():'—');
+  showPage('qr');
+});
+document.getElementById('btn-back-qr')?.addEventListener('click',()=>showPage('complete'));
+document.getElementById('btn-download-qr')?.addEventListener('click',()=>{
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas) return;
+  const link   = document.createElement('a');
+  link.download = `ReadTrack-QR-${session.id||'session'}.png`;
+  link.href     = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// Challenges
+document.getElementById('btn-back-challenges')?.addEventListener('click',()=>showPage('settings'));
+document.getElementById('btn-go-challenges')?.addEventListener('click',()=>{ renderChallenges(); showPage('challenges'); });
 
 document.getElementById('chk-agree')?.addEventListener('change',function(){
   const btn=document.getElementById('btn-agree');
